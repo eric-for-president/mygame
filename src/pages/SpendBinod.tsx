@@ -109,8 +109,6 @@ const items: Item[] = [
 ].sort((a, b) => a.price - b.price);
 
 const formatMoney = (amount: number): string => {
-  if (amount >= 1_000_000_000) return "$" + (amount / 1_000_000_000).toFixed(2) + "B";
-  if (amount >= 1_000_000) return "$" + (amount / 1_000_000).toFixed(2) + "M";
   if (Number.isInteger(amount)) return "$" + amount.toLocaleString("en-US");
   return "$" + amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
