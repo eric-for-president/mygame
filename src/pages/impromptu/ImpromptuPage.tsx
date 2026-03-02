@@ -35,6 +35,10 @@ const ImpromptuPage = () => {
   const [category, setCategory] = useState<string>("");
   const [topicCategory, setTopicCategory] = useState<string>("");
   const [selectedFilter, setSelectedFilter] = useState<string>("");
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [shuffleDisplay, setShuffleDisplay] = useState<string>("");
+  const [shuffleCat, setShuffleCat] = useState<string>("");
+  const shuffleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [remaining, setRemaining] = useState(TOTAL_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
@@ -98,39 +102,70 @@ const ImpromptuPage = () => {
   }, [clearTimer]);
 
   const generateTopic = useCallback(() => {
-    const result = getRandomTopic(selectedFilter || undefined, topic || undefined);
-    setTopic(result.topic);
-    setTopicCategory(result.category);
-    setAccentColor(ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)]);
-    setTopicKey((k) => k + 1);
-
-    // Reset and auto-start timer
+    // Start shuffle animation
+    setIsShuffling(true);
+    setIsDone(false);
     clearTimer();
     setRemaining(TOTAL_SECONDS);
-    setIsDone(false);
     pausedRemainingRef.current = TOTAL_SECONDS;
 
-    // Small delay then auto-start
-    setTimeout(() => {
-      startTimeRef.current = Date.now();
-      pausedRemainingRef.current = TOTAL_SECONDS;
-      setIsRunning(true);
-      intervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - startTimeRef.current) / 1000;
-        const newRemaining = Math.max(0, Math.round(pausedRemainingRef.current - elapsed));
-        setRemaining(newRemaining);
-        if (newRemaining <= 0) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setIsRunning(false);
-          setIsDone(true);
-          setSessions((s) => s + 1);
-          setShowConfetti(true);
-          setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
-          setTimeout(() => setShowConfetti(false), 4000);
-        }
-      }, 100);
-    }, 300);
+    // Clear any existing shuffle
+    if (shuffleRef.current) clearInterval(shuffleRef.current);
+
+    let count = 0;
+    const totalFlips = 15;
+    const baseInterval = 60;
+
+    const doFlip = () => {
+      const r = getRandomTopic(selectedFilter || undefined);
+      setShuffleDisplay(r.topic);
+      setShuffleCat(r.category);
+      count++;
+
+      if (count >= totalFlips) {
+        if (shuffleRef.current) clearInterval(shuffleRef.current);
+        shuffleRef.current = null;
+
+        // Final pick
+        const final = getRandomTopic(selectedFilter || undefined, topic || undefined);
+        setTopic(final.topic);
+        setTopicCategory(final.category);
+        setShuffleDisplay(final.topic);
+        setShuffleCat(final.category);
+        setAccentColor(ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)]);
+        setTopicKey((k) => k + 1);
+        setIsShuffling(false);
+
+        // Auto-start timer after shuffle
+        setTimeout(() => {
+          startTimeRef.current = Date.now();
+          pausedRemainingRef.current = TOTAL_SECONDS;
+          setIsRunning(true);
+          intervalRef.current = setInterval(() => {
+            const elapsed = (Date.now() - startTimeRef.current) / 1000;
+            const newRemaining = Math.max(0, Math.round(pausedRemainingRef.current - elapsed));
+            setRemaining(newRemaining);
+            if (newRemaining <= 0) {
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              intervalRef.current = null;
+              setIsRunning(false);
+              setIsDone(true);
+              setSessions((s) => s + 1);
+              setShowConfetti(true);
+              setQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
+              setTimeout(() => setShowConfetti(false), 4000);
+            }
+          }, 100);
+        }, 300);
+        return;
+      }
+
+      // Slow down towards the end
+      const nextDelay = baseInterval + count * 30;
+      shuffleRef.current = setTimeout(doFlip, nextDelay) as any;
+    };
+
+    shuffleRef.current = setTimeout(doFlip, baseInterval) as any;
   }, [selectedFilter, topic, clearTimer]);
 
   const minutes = Math.floor(remaining / 60);
@@ -209,7 +244,16 @@ const ImpromptuPage = () => {
             boxShadow: topic ? `0 0 40px ${accentColor}30, 0 0 80px ${accentColor}10` : undefined,
           }}
         >
-          {topic ? (
+          {isShuffling ? (
+            <>
+              <span className="inline-block px-3 py-1 text-xs font-display font-bold tracking-wider uppercase bg-neon-purple/15 text-neon-purple border border-neon-purple/30 rounded-full mb-4 animate-pulse">
+                {shuffleCat || "Shuffling..."}
+              </span>
+              <p className="font-display text-xl sm:text-2xl md:text-3xl font-black text-foreground leading-snug transition-all duration-75">
+                "{shuffleDisplay}"
+              </p>
+            </>
+          ) : topic ? (
             <>
               <span className="inline-block px-3 py-1 text-xs font-display font-bold tracking-wider uppercase bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/30 rounded-full mb-4">
                 {topicCategory}
