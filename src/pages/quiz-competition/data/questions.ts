@@ -66,9 +66,29 @@ export const sampleQuestions: Question[] = [
   { id: 'geo-24', text: 'What is the largest hot desert in the world?', answer: 'Sahara Desert', category: 'Geography', difficulty: 'medium' },
   { id: 'geo-25', text: 'Which river is the widest in the world?', answer: 'Amazon River', category: 'Geography', difficulty: 'hard' },
   { id: 'geo-26', text: 'How many continents are there?', answer: 'Seven', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-27', text: 'What is the capital of Canada?', answer: 'Ottawa', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-28', text: 'Which country is the largest by area?', answer: 'Russia', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-29', text: 'What is the longest river in Europe?', answer: 'Volga', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-30', text: 'Which country has the most time zones?', answer: 'France', category: 'Geography', difficulty: 'hard' },
+  { id: 'geo-31', text: 'What is the capital of Egypt?', answer: 'Cairo', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-32', text: 'Which mountain is the tallest in Africa?', answer: 'Mount Kilimanjaro', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-33', text: 'What is the smallest ocean?', answer: 'Arctic Ocean', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-34', text: 'Which country is known as the Land of Fire and Ice?', answer: 'Iceland', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-35', text: 'What is the capital of South Korea?', answer: 'Seoul', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-36', text: 'Which desert is the largest cold desert?', answer: 'Antarctic Desert', category: 'Geography', difficulty: 'hard' },
+  { id: 'geo-37', text: 'What country has the most islands in the world?', answer: 'Sweden', category: 'Geography', difficulty: 'hard' },
+  { id: 'geo-38', text: 'Which river flows through London?', answer: 'Thames', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-39', text: 'What is the capital of Argentina?', answer: 'Buenos Aires', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-40', text: 'Which country is entirely surrounded by South Africa?', answer: 'Lesotho', category: 'Geography', difficulty: 'hard' },
+  { id: 'geo-41', text: 'What is the deepest lake in the world?', answer: 'Lake Baikal', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-42', text: 'Which continent has the most countries?', answer: 'Africa', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-43', text: 'What is the capital of Turkey?', answer: 'Ankara', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-44', text: 'Which country is shaped like a boot?', answer: 'Italy', category: 'Geography', difficulty: 'easy' },
+  { id: 'geo-45', text: 'What strait separates Asia from North America?', answer: 'Bering Strait', category: 'Geography', difficulty: 'medium' },
+  { id: 'geo-46', text: 'Which river is the longest in Africa?', answer: 'Nile', category: 'Geography', difficulty: 'easy' },
 
   // ═══════════════════════════════════
-  // WORLD HISTORY (26 questions)
+  // WORLD HISTORY (26+20 questions)
   // ═══════════════════════════════════
   { id: 'wh-1', text: 'In which year did World War II end?', answer: '1945', category: 'World History', difficulty: 'easy' },
   { id: 'wh-2', text: 'Who was the first person to walk on the Moon?', answer: 'Neil Armstrong', category: 'World History', difficulty: 'easy' },
