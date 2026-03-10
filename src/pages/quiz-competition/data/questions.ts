@@ -325,9 +325,29 @@ export const sampleQuestions: Question[] = [
   { id: 'rob-23', text: 'Asimov\'s First Law says a robot may not do what to a human?', answer: 'Injure', category: 'Robotics', difficulty: 'medium' },
   { id: 'rob-24', text: 'Enabling robots to interpret visual data is called?', answer: 'Computer vision', category: 'Robotics', difficulty: 'medium' },
   { id: 'rob-25', text: 'A drone with four rotors is called?', answer: 'Quadcopter', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-26', text: 'What does GPIO stand for?', answer: 'General Purpose Input Output', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-27', text: 'What type of robot mimics human appearance?', answer: 'Humanoid', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-28', text: 'What sensor measures rotational speed?', answer: 'Gyroscope', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-29', text: 'Honda\'s famous humanoid robot is called?', answer: 'ASIMO', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-30', text: 'A robot that operates underwater is called?', answer: 'ROV or AUV', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-31', text: 'What does UAV stand for?', answer: 'Unmanned Aerial Vehicle', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-32', text: 'Soft robotics uses what type of materials?', answer: 'Flexible materials', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-33', text: 'A sensor that measures acceleration is called?', answer: 'Accelerometer', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-34', text: 'What does CNC stand for in manufacturing robots?', answer: 'Computer Numerical Control', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-35', text: 'A robot designed for surgical procedures is called?', answer: 'Surgical robot', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-36', text: 'What famous robot competed on Jeopardy?', answer: 'Watson', category: 'Robotics', difficulty: 'medium' },
+  { id: 'rob-37', text: 'A mechanical device that grips objects is called?', answer: 'Gripper', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-38', text: 'How many laws of robotics did Asimov propose?', answer: 'Three', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-39', text: 'A robot that follows a line on the ground is called?', answer: 'Line follower', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-40', text: 'What powers most mobile robots?', answer: 'Batteries', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-41', text: 'Robots used in car assembly lines are typically what type?', answer: 'Industrial robots', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-42', text: 'What does SCARA stand for in robotics?', answer: 'Selective Compliance Assembly Robot Arm', category: 'Robotics', difficulty: 'hard' },
+  { id: 'rob-43', text: 'A robot that can move on its own without human control is called?', answer: 'Autonomous robot', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-44', text: 'What sensor detects physical contact or pressure?', answer: 'Touch sensor', category: 'Robotics', difficulty: 'easy' },
+  { id: 'rob-45', text: 'What company makes the Spot robot dog?', answer: 'Boston Dynamics', category: 'Robotics', difficulty: 'easy' },
 
   // ═══════════════════════════════════
-  // ARTIFICIAL INTELLIGENCE (26 questions)
+  // ARTIFICIAL INTELLIGENCE (26+20 questions)
   // ═══════════════════════════════════
   { id: 'ai-1', text: 'What does AI stand for?', answer: 'Artificial Intelligence', category: 'Artificial Intelligence', difficulty: 'easy' },
   { id: 'ai-2', text: 'A computing system inspired by biological neurons is called?', answer: 'Neural network', category: 'Artificial Intelligence', difficulty: 'medium' },
