@@ -424,9 +424,29 @@ export const sampleQuestions: Question[] = [
   { id: 'et-23', text: 'Wireless technology that uses visible light for data transmission is?', answer: 'Li-Fi', category: 'Emerging Technology', difficulty: 'hard' },
   { id: 'et-24', text: 'A digital currency secured by cryptography is called?', answer: 'Cryptocurrency', category: 'Emerging Technology', difficulty: 'easy' },
   { id: 'et-25', text: 'Engineering at the 1-100 nanometer scale is called?', answer: 'Nanotechnology', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-26', text: 'What does SaaS stand for?', answer: 'Software as a Service', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-27', text: 'What technology allows machines to communicate without human intervention?', answer: 'M2M communication', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-28', text: 'What does API-first design mean?', answer: 'Building APIs before UI', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-29', text: 'What technology uses distributed computers to solve problems?', answer: 'Grid computing', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-30', text: 'What does RPA stand for?', answer: 'Robotic Process Automation', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-31', text: 'A network of physical devices embedded with sensors is called?', answer: 'IoT', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-32', text: 'What technology enables contactless payments via phones?', answer: 'NFC', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-33', text: 'What does XR stand for?', answer: 'Extended Reality', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-34', text: 'A zero-knowledge proof verifies information without revealing what?', answer: 'The data itself', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-35', text: 'What does DAO stand for in blockchain?', answer: 'Decentralized Autonomous Organization', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-36', text: 'What satellite internet service was launched by SpaceX?', answer: 'Starlink', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-37', text: 'What does DeFi stand for?', answer: 'Decentralized Finance', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-38', text: 'Apple\'s mixed reality headset is called?', answer: 'Vision Pro', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-39', text: 'What does MaaS stand for in transportation?', answer: 'Mobility as a Service', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-40', text: 'What is the name of Meta\'s VR headset line?', answer: 'Quest', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-41', text: 'What technology underlies Bitcoin?', answer: 'Blockchain', category: 'Emerging Technology', difficulty: 'easy' },
+  { id: 'et-42', text: 'What does IaaS stand for?', answer: 'Infrastructure as a Service', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-43', text: 'A technique that encrypts data while it is being processed is called?', answer: 'Homomorphic encryption', category: 'Emerging Technology', difficulty: 'hard' },
+  { id: 'et-44', text: 'What does PaaS stand for?', answer: 'Platform as a Service', category: 'Emerging Technology', difficulty: 'medium' },
+  { id: 'et-45', text: 'What is the process of converting physical documents into digital format?', answer: 'Digitization', category: 'Emerging Technology', difficulty: 'easy' },
 
   // ═══════════════════════════════════
-  // SCIENCE & TECHNOLOGY (25 questions)
+  // SCIENCE & TECHNOLOGY (25+20 questions)
   // ═══════════════════════════════════
   { id: 'st-1', text: 'What is the speed of light approximately in m/s?', answer: '3 × 10⁸ m/s', category: 'Science & Technology', difficulty: 'medium' },
   { id: 'st-2', text: 'What planet is known as the Red Planet?', answer: 'Mars', category: 'Science & Technology', difficulty: 'easy' },
