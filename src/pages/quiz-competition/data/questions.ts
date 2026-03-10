@@ -375,9 +375,29 @@ export const sampleQuestions: Question[] = [
   { id: 'ai-24', text: 'What does RNN stand for?', answer: 'Recurrent Neural Network', category: 'Artificial Intelligence', difficulty: 'hard' },
   { id: 'ai-25', text: 'Increasing training data by rotation, flipping etc. is called?', answer: 'Data augmentation', category: 'Artificial Intelligence', difficulty: 'medium' },
   { id: 'ai-26', text: 'When gradients become too small in deep networks, it\'s called?', answer: 'Vanishing gradient', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-27', text: 'What does BERT stand for?', answer: 'Bidirectional Encoder Representations from Transformers', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-28', text: 'What company developed AlphaGo?', answer: 'DeepMind', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-29', text: 'What game did AlphaGo famously win?', answer: 'Go', category: 'Artificial Intelligence', difficulty: 'easy' },
+  { id: 'ai-30', text: 'K-means is what type of learning algorithm?', answer: 'Clustering', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-31', text: 'What does OCR stand for?', answer: 'Optical Character Recognition', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-32', text: 'A dataset used to evaluate model performance during training is called?', answer: 'Validation set', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-33', text: 'What technique prevents overfitting by randomly dropping neurons?', answer: 'Dropout', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-34', text: 'Converting text into numerical vectors is called?', answer: 'Embedding', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-35', text: 'What AI technique generates realistic images from text descriptions?', answer: 'Diffusion models', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-36', text: 'Siri and Alexa are examples of what type of AI?', answer: 'Virtual assistants', category: 'Artificial Intelligence', difficulty: 'easy' },
+  { id: 'ai-37', text: 'What does LLM stand for?', answer: 'Large Language Model', category: 'Artificial Intelligence', difficulty: 'easy' },
+  { id: 'ai-38', text: 'Training a model with human feedback is called?', answer: 'RLHF', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-39', text: 'An AI model that can generate images is called?', answer: 'Generative model', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-40', text: 'What activation function outputs values between 0 and 1?', answer: 'Sigmoid', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-41', text: 'Predicting a continuous value is called what type of problem?', answer: 'Regression', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-42', text: 'Predicting a category label is called what type of problem?', answer: 'Classification', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-43', text: 'What popular AI image generator was created by Stability AI?', answer: 'Stable Diffusion', category: 'Artificial Intelligence', difficulty: 'medium' },
+  { id: 'ai-44', text: 'The attention mechanism was introduced in which famous paper?', answer: 'Attention Is All You Need', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-45', text: 'What does RAG stand for in AI?', answer: 'Retrieval Augmented Generation', category: 'Artificial Intelligence', difficulty: 'hard' },
+  { id: 'ai-46', text: 'AI hallucination refers to what?', answer: 'Generating false information', category: 'Artificial Intelligence', difficulty: 'medium' },
 
   // ═══════════════════════════════════
-  // EMERGING TECHNOLOGY (25 questions)
+  // EMERGING TECHNOLOGY (25+20 questions)
   // ═══════════════════════════════════
   { id: 'et-1', text: 'What does IoT stand for?', answer: 'Internet of Things', category: 'Emerging Technology', difficulty: 'easy' },
   { id: 'et-2', text: 'A decentralized distributed digital ledger is called?', answer: 'Blockchain', category: 'Emerging Technology', difficulty: 'medium' },
