@@ -3,6 +3,15 @@ import { Question, sampleQuestions, RoundType, Category } from '../data/question
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -41,7 +50,7 @@ const defaultState: QuizState = {
   rounds: [
     { id: 'r1', name: 'General Knowledge Round', type: 'General Knowledge Round' },
   ],
-  questions: sampleQuestions.map(q => ({ ...q, used: false })),
+  questions: shuffleArray(sampleQuestions.map(q => ({ ...q, used: false }))),
   currentRoundIndex: 0,
   currentTeamIndex: 0,
   currentQuestionIndex: -1,
@@ -68,7 +77,7 @@ function loadState(): QuizState {
       return {
         ...defaultState,
         ...parsed,
-        questions: [...savedQuestions, ...freshQuestions],
+        questions: shuffleArray([...savedQuestions, ...freshQuestions]),
         timerRunning: false,
       };
     }
