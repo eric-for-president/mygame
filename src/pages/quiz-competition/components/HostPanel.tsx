@@ -23,6 +23,28 @@ export default function HostPanel({ state }: HostPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customCategory, setCustomCategory] = useState('');
   const [allCategories, setAllCategories] = useState<string[]>([...categories]);
+  const [sessionAddedIds, setSessionAddedIds] = useState<Set<string>>(new Set());
+
+  // Track recently added questions this session
+  const recentlyAdded = useMemo(() => {
+    if (sessionAddedIds.size === 0) return [];
+    return state.filteredQuestions.filter((q: any) => sessionAddedIds.has(q.id));
+  }, [state.filteredQuestions, sessionAddedIds]);
+
+  // Wrap addQuestion to track session-added IDs
+  const handleAddQuestion = async (q: any) => {
+    const prevIds = new Set(state.questions?.map((qq: any) => qq.id) || []);
+    await state.addQuestion(q);
+    // We'll check for new IDs after state updates via effect-like approach
+    setTimeout(() => {
+      // Find the newest question by checking what's new
+      const allQs = JSON.parse(localStorage.getItem('quiz-competition-state') || '{}').questions || [];
+      const newQ = allQs.find((qq: any) => !prevIds.has(qq.id));
+      if (newQ) {
+        setSessionAddedIds(prev => new Set([...prev, newQ.id]));
+      }
+    }, 100);
+  };
 
   const tabs = [
     { id: 'teams' as const, label: 'Teams', icon: Users },
