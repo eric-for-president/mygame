@@ -15,7 +15,7 @@ import {
   NumberBingoAnim, SpeakingAnim, FlameAnim, TicTacToeAnim,
   CodeFlowAnim, PodiumAnim,
 } from "@/components/CardAnimations";
-
+import conan from "@/assets/conan.png";
 const games = [
   {
     icon: "🎡",
@@ -226,13 +226,17 @@ const Index = () => {
 
         {/* Hero Section */}
         <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20 animate-fade-in">
-          <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-black tracking-tight text-foreground mb-4 text-glow-purple animate-float">
-            🎮 nerd.fun
-          </h1>
-          <p className="font-body text-lg sm:text-xl md:text-2xl text-muted-foreground font-light tracking-wide">
-            Where randomness meets responsibility.
-          </p>
-
+            <h1 className="flex items-center gap-4 font-display text-4xl sm:text-5xl md:text-7xl font-black tracking-tight text-foreground mb-4 text-glow-purple animate-float">
+                <img
+                    src={conan}
+                    alt="Conan"
+                    className="w-20 sm:w-24 md:w-32 h-auto object-contain"
+                />
+                <span>nerd.fun</span>
+            </h1>
+            <p className="font-body text-lg sm:text-xl md:text-2xl text-muted-foreground font-light tracking-wide">
+                Games of luck. Battles of skill.
+            </p>
           {/* Decorative line */}
           <div className="mt-8 mx-auto w-48 h-[2px] bg-gradient-to-r from-transparent via-neon-purple to-transparent opacity-60" />
         </div>
