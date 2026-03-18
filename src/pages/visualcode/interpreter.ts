@@ -636,7 +636,55 @@ class CInterpreter {
     return idx + 1;
   }
 
-  private evalC(expr: string, scope: Record<string, any>): any {
+  private extractCBlock(idx: number, lines: string[], headerLine: string): { blockLines: string[]; endIdx: number } {
+    const blockLines: string[] = [];
+    let j = idx + 1;
+    if (headerLine.includes('{') || (j < lines.length && lines[j].trim() === '{')) {
+      if (!headerLine.includes('{')) j++;
+      let d = 1;
+      while (j < lines.length && d > 0) {
+        if (lines[j].includes('}')) d--;
+        if (d <= 0) { j++; break; }
+        if (lines[j].includes('{')) d++;
+        blockLines.push(lines[j]);
+        j++;
+      }
+    } else {
+      blockLines.push(lines[j] ?? '');
+      j = idx + 2;
+    }
+    return { blockLines, endIdx: j };
+  }
+
+  private skipCBranches(idx: number, lines: string[]): number {
+    let j = idx;
+    // skip current else-if block
+    let d = lines[j]?.includes('{') ? 1 : 0;
+    j++;
+    while (j < lines.length && d > 0) {
+      if (lines[j].includes('}')) d--;
+      if (d <= 0) { j++; break; }
+      if (lines[j].includes('{')) d++;
+      j++;
+    }
+    // skip any trailing else/else-if
+    while (j < lines.length) {
+      const nl = lines[j]?.trim() ?? '';
+      if (nl.startsWith('} else') || nl.startsWith('else')) {
+        d = nl.includes('{') ? 1 : 0;
+        j++;
+        if (d === 0) { j++; break; }
+        while (j < lines.length && d > 0) {
+          if (lines[j].includes('}')) d--;
+          if (d <= 0) { j++; break; }
+          if (lines[j].includes('{')) d++;
+          j++;
+        }
+      } else break;
+    }
+    return j;
+  }
+
     expr = expr.trim().replace(/;$/, '');
     if (!expr) return 0;
     if (/^-?\d+(\.\d+)?$/.test(expr)) return Number(expr);
