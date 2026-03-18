@@ -546,22 +546,7 @@ class CInterpreter {
       const cond = line.match(/if\s*\((.+)\)/)?.[1] ?? '';
       const val = this.evalC(cond, scope);
       // Find block
-      let blockLines: string[] = [];
-      let j = idx + 1;
-      if (line.includes('{') || (j < lines.length && lines[j].trim() === '{')) {
-        if (!line.includes('{')) j++;
-        let d = 1;
-        const start = j;
-        while (j < lines.length && d > 0) {
-          if (lines[j].includes('{')) d++;
-          if (lines[j].includes('}')) d--;
-          if (d > 0) { blockLines.push(lines[j]); j++; }
-          else j++;
-        }
-      } else {
-        blockLines = [lines[j] ?? ''];
-        j = idx + 2;
-      }
+      const { blockLines, endIdx: j } = this.extractCBlock(idx, lines, line);
 
       if (val) {
         this.record(idx, 'condition_true', `${cond} → True`, scope);
@@ -570,28 +555,40 @@ class CInterpreter {
         this.record(idx, 'condition_false', `${cond} → False`, scope);
       }
 
-      // Check for else
-      if (j < lines.length && lines[j]?.trim().startsWith('else')) {
-        let elseLines: string[] = [];
-        let k = j + 1;
-        if (lines[j].includes('{') || (k < lines.length && lines[k].trim() === '{')) {
-          if (!lines[j].includes('{')) k++;
-          let d = 1;
-          while (k < lines.length && d > 0) {
-            if (lines[k].includes('{')) d++;
-            if (lines[k].includes('}')) d--;
-            if (d > 0) { elseLines.push(lines[k]); k++; }
-            else k++;
+      // Check for else if / else
+      if (j < lines.length) {
+        const nextLine = lines[j]?.trim() ?? '';
+        if (nextLine.startsWith('} else if') || nextLine.startsWith('else if')) {
+          const cleanLine = nextLine.replace(/^\}\s*/, '');
+          if (!val) return this.executeCLine(cleanLine, j, lines, scope);
+          // skip else if + any trailing else blocks
+          return this.skipCBranches(j, lines);
+        }
+        if (nextLine.startsWith('} else') || nextLine.startsWith('else')) {
+          const elseLine = nextLine.replace(/^\}\s*else\s*/, '');
+          let elseLines: string[] = [];
+          let k = j;
+          if (elseLine.includes('{') || nextLine.includes('{')) {
+            k = j + 1;
+            let d = 1;
+            while (k < lines.length && d > 0) {
+              if (lines[k].includes('}')) d--;
+              if (d <= 0) { k++; break; }
+              if (lines[k].includes('{')) d++;
+              elseLines.push(lines[k]);
+              k++;
+            }
+          } else {
+            k = j + 1;
+            elseLines = [lines[k] ?? ''];
+            k++;
           }
-        } else {
-          elseLines = [lines[k] ?? ''];
-          k++;
+          if (!val) {
+            this.record(j, 'condition_true', 'Entering else block', scope);
+            for (const bl of elseLines) this.executeCLine(bl, j, lines, scope);
+          }
+          return k;
         }
-        if (!val) {
-          this.record(j, 'condition_true', 'Entering else block', scope);
-          for (const bl of elseLines) this.executeCLine(bl, j, lines, scope);
-        }
-        return k;
       }
       return j;
     }
