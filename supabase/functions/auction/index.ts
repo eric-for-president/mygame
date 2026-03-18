@@ -92,7 +92,7 @@ const items: AuctionItem[] = [
     id: 10,
     name: "Action Comics #1",
     description: "First appearance of Superman, 1938. The holy grail of comic books.",
-    image: "https://upload.wikimedia.org/wikipedia/en/5/5a/Action_Comics_1.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Superman_first_comic.jpg/800px-Superman_first_comic.jpg",
     actual_price: 3250000,
     year: "1938",
   },
