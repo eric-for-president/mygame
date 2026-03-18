@@ -44,7 +44,7 @@ const items: AuctionItem[] = [
     id: 4,
     name: "Les Femmes d'Alger (Version O)",
     description: "By Pablo Picasso, 1955. Sold at Christie's New York.",
-    image: "https://upload.wikimedia.org/wikipedia/en/7/7e/Les_Femmes_d%27Alger.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Pablo_Picasso%2C_1910-11%2C_Guitariste%2C_La_mandoliniste%2C_Woman_playing_guitar%2C_oil_on_canvas.jpg/800px-Pablo_Picasso%2C_1910-11%2C_Guitariste%2C_La_mandoliniste%2C_Woman_playing_guitar%2C_oil_on_canvas.jpg",
     actual_price: 179400000,
     year: "1955",
   },
