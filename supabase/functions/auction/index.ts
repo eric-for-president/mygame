@@ -52,7 +52,7 @@ const items: AuctionItem[] = [
     id: 5,
     name: "No. 5, 1948",
     description: "By Jackson Pollock. One of the most expensive paintings ever sold privately.",
-    image: "https://upload.wikimedia.org/wikipedia/en/4/4a/No._5%2C_1948.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Jackson_Pollock%27s_studio_in_Springs%2C_New_York.jpg/800px-Jackson_Pollock%27s_studio_in_Springs%2C_New_York.jpg",
     actual_price: 140000000,
     year: "1948",
   },
