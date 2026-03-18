@@ -220,7 +220,7 @@ const items: AuctionItem[] = [
     id: 26,
     name: "Shot Sage Blue Marilyn",
     description: "By Andy Warhol, 1964. Most expensive American artwork ever sold at auction.",
-    image: "https://upload.wikimedia.org/wikipedia/en/6/66/Shot_Sage_Blue_Marilyn_by_Andy_Warhol.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Andy_Warhol_by_Jack_Mitchell.jpg/800px-Andy_Warhol_by_Jack_Mitchell.jpg",
     actual_price: 195000000,
     year: "1964",
   },
