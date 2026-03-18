@@ -236,7 +236,7 @@ const items: AuctionItem[] = [
     id: 28,
     name: "Guernica",
     description: "By Pablo Picasso, 1937. A powerful anti-war masterpiece. Estimated insurance value.",
-    image: "https://upload.wikimedia.org/wikipedia/en/7/74/Guernica.jpg",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Pablo_Picasso%2C_1962.jpg/800px-Pablo_Picasso%2C_1962.jpg",
     actual_price: 200000000,
     year: "1937",
   },
