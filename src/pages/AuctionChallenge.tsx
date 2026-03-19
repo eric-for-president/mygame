@@ -103,8 +103,6 @@ const AuctionChallenge = () => {
   const [gameOver, setGameOver] = useState(false);
   const [imageHover, setImageHover] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const [resolvedImageUrl, setResolvedImageUrl] = useState("");
-  const imageObjectUrlRef = useRef<string | null>(null);
 
   const ITEMS_PER_SESSION = 7;
 
