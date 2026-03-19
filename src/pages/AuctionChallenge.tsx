@@ -184,12 +184,6 @@ const AuctionChallenge = () => {
   };
 
   const playAgain = () => {
-    if (imageObjectUrlRef.current) {
-      URL.revokeObjectURL(imageObjectUrlRef.current);
-      imageObjectUrlRef.current = null;
-    }
-
-    setResolvedImageUrl("");
     setImageFailed(false);
     setCurrentIdx(0);
     setGuess("");
