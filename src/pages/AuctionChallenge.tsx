@@ -128,15 +128,36 @@ const AuctionChallenge = () => {
     1: "/auction-images/mona-lisa.jpg",
     2: "/auction-images/the-scream.jpg",
     3: "/auction-images/salvator-mundi.jpg",
+    4: "/auction-images/les-femmes-dalger.png",
     5: "/auction-images/no-5-1948.jpg",
     6: "/auction-images/starry-night.jpg",
     7: "/auction-images/girl-with-pearl-earring.jpg",
+    8: "/auction-images/ferrari-250-gto.jpg",
+    9: "/auction-images/codex-leicester.jpg",
     10: "/auction-images/action-comics-1.jpg",
     11: "/auction-images/persistence-of-memory.jpg",
+    12: "/auction-images/water-lilies.jpg",
+    13: "/auction-images/the-kiss.jpg",
+    14: "/auction-images/great-wave.jpg",
+    15: "/auction-images/birth-of-venus.jpg",
+    16: "/auction-images/american-gothic.jpg",
+    17: "/auction-images/nighthawks.jpg",
+    18: "/auction-images/ferrari-250-gt-lusso.jpg",
+    19: "/auction-images/declaration-of-independence.jpg",
+    20: "/auction-images/lady-blunt-violin.jpg",
+    21: "/auction-images/hope-diamond.jpg",
+    22: "/auction-images/stan-trex.jpg",
+    23: "/auction-images/honus-wagner-card.jpg",
+    24: "/auction-images/codex-hammer.jpg",
+    25: "/auction-images/interchange.jpg",
+    26: "/auction-images/shot-sage-blue-marilyn.jpg",
+    27: "/auction-images/card-players.jpg",
+    28: "/auction-images/guernica.jpg",
+    29: "/auction-images/rolex-daytona.png",
+    30: "/auction-images/inverted-jenny.jpg",
   };
 
-  const getImageSrc = (item: AuctionItem) =>
-    localImageMap[item.id] || item.image;
+  const getImageSrc = (item: AuctionItem) => localImageMap[item.id] || "";
 
   useEffect(() => {
     setImageFailed(false);
