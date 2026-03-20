@@ -52,6 +52,40 @@ const formatVal = (v: any): string => {
 };
 
 const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMode: boolean }) => {
+  const [grid, setGrid] = useState<number[][]>([]);
+
+  // Detect loop variables
+  const i = step?.variables?.i;
+  const j = step?.variables?.j;
+
+  const isNestedLoop =
+    typeof i === "number" &&
+    typeof j === "number";
+
+  // Update grid when new step comes
+  useEffect(() => {
+    if (!step) return;
+
+    const i = step.variables.i;
+    const j = step.variables.j;
+
+    if (typeof i === "number" && typeof j === "number" && step.type === "print") {
+      const value = parseInt(step.output.at(-1) || "0");
+
+      setGrid(prev => {
+        const newGrid = prev.map(row => [...row]);
+
+        // Ensure grid size
+        while (newGrid.length < i) newGrid.push([]);
+        while (newGrid[i - 1].length < j) newGrid[i - 1].push(null);
+
+        newGrid[i - 1][j - 1] = value;
+
+        return newGrid;
+      });
+    }
+  }, [step]);
+
   if (!step) return (
     <div className="h-full flex items-center justify-center text-muted-foreground/40">
       <div className="text-center space-y-3">
@@ -63,8 +97,46 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
   );
 
   const vars = Object.entries(step.variables);
+
   return (
     <div className="h-full flex flex-col gap-3 p-4 overflow-auto">
+
+      {/* 🔢 GRID VISUALIZATION */}
+      {isNestedLoop && (
+        <div className="glass-panel p-4">
+          <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3 tracking-wider">
+            🔢 Loop Grid Visualization
+          </h3>
+
+          <div className="grid gap-2">
+            {grid.map((row, rowIdx) => (
+              <div key={rowIdx} className="flex gap-2">
+                {row.map((cell, colIdx) => {
+                  const isActive =
+                    rowIdx + 1 === step.variables.i &&
+                    colIdx + 1 === step.variables.j;
+
+                  return (
+                    <motion.div
+                      key={colIdx}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className={`w-10 h-10 flex items-center justify-center rounded-lg font-mono text-sm border
+                        ${isActive
+                          ? "bg-neon-cyan text-black scale-110"
+                          : "bg-muted/30 text-foreground"}
+                      `}
+                    >
+                      {cell ?? ""}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Step explanation */}
       {learningMode && (
         <motion.div
@@ -77,7 +149,7 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
         </motion.div>
       )}
 
-      {/* Main step info */}
+      {/* Step info */}
       <motion.div
         key={`${step.line}-${step.type}`}
         initial={{ opacity: 0, scale: 0.95 }}
@@ -93,82 +165,43 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
             step.type === 'print' ? 'bg-cyan-500/20 text-cyan-400' :
             step.type.includes('loop') ? 'bg-purple-500/20 text-purple-400' :
             'bg-white/10 text-muted-foreground'
-          }`}>{step.type.replace('_', ' ')}</span>
-          <span className="text-xs text-muted-foreground font-mono">Line {step.line + 1}</span>
+          }`}>
+            {step.type.replace('_', ' ')}
+          </span>
+          <span className="text-xs text-muted-foreground font-mono">
+            Line {step.line + 1}
+          </span>
         </div>
         <p className="font-mono text-sm text-foreground">{step.explanation}</p>
       </motion.div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Variables */}
-        <div className="glass-panel p-4 overflow-auto">
-          <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3 tracking-wider">📦 Variables</h3>
-          {vars.length === 0 ? (
-            <p className="text-xs text-muted-foreground/40 italic">No variables yet</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <AnimatePresence>
-                {vars.map(([name, value]) => (
-                  <motion.div
-                    key={name}
-                    layout
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="bg-neon-purple/10 border border-neon-purple/20 rounded-lg p-2.5 text-center"
-                  >
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{name}</p>
-                    <p className="font-mono text-sm font-bold text-neon-purple mt-0.5">{formatVal(value)}</p>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+      {/* Variables */}
+      <div className="glass-panel p-4">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3">
+          📦 Variables
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {vars.map(([name, value]) => (
+            <div key={name} className="bg-neon-purple/10 rounded p-2 text-center">
+              <p className="text-[10px] text-muted-foreground">{name}</p>
+              <p className="font-mono text-sm text-neon-purple">{String(value)}</p>
             </div>
-          )}
-        </div>
-
-        {/* Call Stack */}
-        <div className="glass-panel p-4 overflow-auto">
-          <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3 tracking-wider">📚 Call Stack</h3>
-          {step.callStack.length === 0 ? (
-            <p className="text-xs text-muted-foreground/40 italic">Global scope</p>
-          ) : (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {[...step.callStack].reverse().map((frame, i) => (
-                  <motion.div
-                    key={`${frame.functionName}-${i}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className="bg-neon-cyan/10 border border-neon-cyan/20 rounded-lg p-2.5"
-                  >
-                    <p className="font-mono text-sm font-bold text-neon-cyan">{frame.functionName}()</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {Object.entries(frame.args).map(([k, v]) => (
-                        <span key={k} className="text-[10px] bg-neon-cyan/10 rounded px-1.5 py-0.5 text-neon-cyan/70">
-                          {k}={formatVal(v)}
-                        </span>
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
+          ))}
         </div>
       </div>
 
       {/* Output */}
       <div className="glass-panel p-4">
-        <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-2 tracking-wider">🖥️ Output</h3>
-        <div className="font-mono text-sm bg-[hsl(220,20%,6%)] rounded p-2 min-h-[2.5rem] max-h-24 overflow-auto">
-          {step.output.length === 0 ? (
-            <span className="text-muted-foreground/30 italic text-xs">No output yet</span>
-          ) : step.output.map((line, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-neon-cyan">{line}</motion.div>
+        <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-2">
+          🖥️ Output
+        </h3>
+        <div className="font-mono text-sm bg-[hsl(220,20%,6%)] rounded p-2 min-h-[2.5rem]">
+          {step.output.map((line, i) => (
+            <div key={i} className="text-neon-cyan">{line}</div>
           ))}
         </div>
       </div>
+
     </div>
   );
 };

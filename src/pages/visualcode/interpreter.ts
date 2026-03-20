@@ -550,7 +550,7 @@ class CInterpreter {
 
       if (val) {
         this.record(idx, 'condition_true', `${cond} → True`, scope);
-        for (const bl of blockLines) this.executeCLine(bl, idx, lines, scope);
+        this.executeCBlockLines(blockLines, scope);
       } else {
         this.record(idx, 'condition_false', `${cond} → False`, scope);
       }
@@ -585,11 +585,27 @@ class CInterpreter {
           }
           if (!val) {
             this.record(j, 'condition_true', 'Entering else block', scope);
-            for (const bl of elseLines) this.executeCLine(bl, j, lines, scope);
+            this.executeCBlockLines(elseLines, scope);
           }
           return k;
         }
       }
+      return j;
+    }
+
+    // While loop
+    if (line.startsWith('while') && line.includes('(')) {
+      const cond = line.match(/while\s*\((.+)\)/)?.[1] ?? '';
+      const { blockLines, endIdx: j } = this.extractCBlock(idx, lines, line);
+      this.record(idx, 'loop_start', 'While loop started', scope);
+
+      let iter = 0;
+      while (this.evalC(cond, scope) && iter++ < 200 && this.stepCount < this.maxSteps) {
+        this.record(idx, 'loop_check', `Condition true (iteration ${iter})`, scope);
+        this.executeCBlockLines(blockLines, scope);
+      }
+
+      this.record(idx, 'condition_false', 'Loop ended', scope);
       return j;
     }
 
@@ -618,9 +634,10 @@ class CInterpreter {
         }
         while (this.evalC(parts[1], scope) && iter++ < 200 && this.stepCount < this.maxSteps) {
           this.record(idx, 'loop_check', `Condition true (iteration ${iter})`, scope);
-          for (const bl of blockLines) this.executeCLine(bl, idx, lines, scope);
+          this.executeCBlockLines(blockLines, scope);
           this.executeCLine(parts[2], idx, lines, scope);
         }
+        this.record(idx, 'condition_false', 'Loop ended', scope);
         return j;
       }
     }
@@ -634,6 +651,18 @@ class CInterpreter {
 
     this.record(idx, 'expression', line, scope);
     return idx + 1;
+  }
+
+  private executeCBlockLines(blockLines: string[], scope: Record<string, any>) {
+    let bi = 0;
+    while (bi < blockLines.length && this.stepCount < this.maxSteps) {
+      const bodyLine = blockLines[bi].replace(/;$/, '').trim();
+      if (!bodyLine || bodyLine === '{' || bodyLine === '}') {
+        bi++;
+        continue;
+      }
+      bi = this.executeCLine(bodyLine, bi, blockLines, scope);
+    }
   }
 
   private extractCBlock(idx: number, lines: string[], headerLine: string): { blockLines: string[]; endIdx: number } {
