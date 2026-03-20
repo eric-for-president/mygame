@@ -102,6 +102,7 @@ const AuctionChallenge = () => {
   const [history, setHistory] = useState<SessionRecord[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [imageHover, setImageHover] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const ITEMS_PER_SESSION = 7;
 
@@ -122,6 +123,45 @@ const AuctionChallenge = () => {
   }, []);
 
   const currentItem = items[currentIdx];
+
+  const localImageMap: Record<number, string> = {
+    1: "/auction-images/mona-lisa.jpg",
+    2: "/auction-images/the-scream.jpg",
+    3: "/auction-images/salvator-mundi.jpg",
+    4: "/auction-images/les-femmes-dalger.png",
+    5: "/auction-images/no-5-1948.jpg",
+    6: "/auction-images/starry-night.jpg",
+    7: "/auction-images/girl-with-pearl-earring.jpg",
+    8: "/auction-images/ferrari-250-gto.jpg",
+    9: "/auction-images/codex-leicester.jpg",
+    10: "/auction-images/action-comics-1.jpg",
+    11: "/auction-images/persistence-of-memory.jpg",
+    12: "/auction-images/water-lilies.jpg",
+    13: "/auction-images/the-kiss.jpg",
+    14: "/auction-images/great-wave.jpg",
+    15: "/auction-images/birth-of-venus.jpg",
+    16: "/auction-images/american-gothic.jpg",
+    17: "/auction-images/nighthawks.jpg",
+    18: "/auction-images/ferrari-250-gt-lusso.jpg",
+    19: "/auction-images/declaration-of-independence.jpg",
+    20: "/auction-images/lady-blunt-violin.jpg",
+    21: "/auction-images/hope-diamond.jpg",
+    22: "/auction-images/stan-trex.jpg",
+    23: "/auction-images/honus-wagner-card.jpg",
+    24: "/auction-images/codex-hammer.jpg",
+    25: "/auction-images/interchange.jpg",
+    26: "/auction-images/shot-sage-blue-marilyn.jpg",
+    27: "/auction-images/card-players.jpg",
+    28: "/auction-images/guernica.jpg",
+    29: "/auction-images/rolex-daytona.png",
+    30: "/auction-images/inverted-jenny.jpg",
+  };
+
+  const getImageSrc = (item: AuctionItem) => localImageMap[item.id] || "";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [currentItem?.id]);
 
   const handleGuessChange = (value: string) => {
     const numeric = value.replace(/[^0-9]/g, "");
@@ -165,6 +205,7 @@ const AuctionChallenge = () => {
   };
 
   const playAgain = () => {
+    setImageFailed(false);
     setCurrentIdx(0);
     setGuess("");
     setResult(null);
@@ -334,12 +375,17 @@ const AuctionChallenge = () => {
               onMouseLeave={() => setImageHover(false)}
             >
               <motion.img
-                src={currentItem.image}
+                src={imageFailed
+                  ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b1d10"/><stop offset="55%" stop-color="#120909"/><stop offset="100%" stop-color="#060607"/></linearGradient></defs><rect width="600" height="800" fill="url(#g)" rx="32"/><circle cx="300" cy="270" r="120" fill="rgba(245,158,11,0.16)"/><rect x="185" y="155" width="230" height="230" rx="26" fill="rgba(255,255,255,0.06)" stroke="rgba(245,158,11,0.38)"/><text x="300" y="275" text-anchor="middle" font-size="84">🏛️</text><text x="300" y="470" text-anchor="middle" fill="#f5f5f5" font-size="34" font-family="Arial, sans-serif" font-weight="700">${currentItem.name}</text><text x="300" y="520" text-anchor="middle" fill="rgba(255,255,255,0.58)" font-size="24" font-family="Arial, sans-serif">${currentItem.year}</text></svg>`)}`
+                  : getImageSrc(currentItem)}
                 alt={currentItem.name}
                 className="w-full h-full object-cover"
                 animate={{ scale: imageHover ? 1.05 : 1 }}
                 transition={{ duration: 0.4 }}
                 loading="eager"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={() => setImageFailed(true)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4">
