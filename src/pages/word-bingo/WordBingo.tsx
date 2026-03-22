@@ -1,252 +1,319 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { io, type Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import ParticleBackground from "@/components/ParticleBackground";
 import BingoBoard from "./components/BingoBoard";
 import WordCaller from "./components/WordCaller";
-import ControlPanel from "./components/ControlPanel";
-import ResultModal from "./components/ResultModal";
 import { wordSets, type WordSet } from "./data/wordSets";
+import type {
+  WordBingoResultPayload,
+  WordCalledPayload,
+  WordCardPayload,
+  WordGameStatePayload,
+} from "./types";
 
-const ENGLISH_VOCAB_SET_NAME = "English Vocabulary (IELTS + SAT)";
-const ENGLISH_VOCAB_ROUND_SIZE = 100;
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-const WIN_LINES = (() => {
-  const lines: number[][] = [];
-  for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map(c => r * 5 + c));
-  for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map(r => r * 5 + c));
-  lines.push([0,6,12,18,24]);
-  lines.push([4,8,12,16,20]);
-  return lines;
-})();
-
-const playTone = (freq: number, dur: number) => {
-  try {
-    const ctx = new AudioContext();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.frequency.value = freq;
-    o.type = "sine";
-    g.gain.value = 0.08;
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    o.start();
-    o.stop(ctx.currentTime + dur);
-  } catch {}
-};
+const isBrowser = typeof window !== "undefined";
+const isLocalHost = isBrowser && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const SERVER_URL = import.meta.env.VITE_BINGO_SERVER_URL
+  || (isLocalHost ? "http://localhost:4001" : (isBrowser ? window.location.origin : "http://localhost:4001"));
 
 const WordBingo = () => {
-  const [selectedSet, setSelectedSet] = useState<WordSet | null>(null);
-  const [board, setBoard] = useState<string[]>([]);
-  const [wordPool, setWordPool] = useState<string[]>([]);
-  const [poolIndex, setPoolIndex] = useState(0);
+  const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [roomIdInput, setRoomIdInput] = useState("MAIN");
+  const [joined, setJoined] = useState(false);
+  const [roomId, setRoomId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<WordSet>(wordSets[0]);
+  const [card, setCard] = useState<(string | null)[]>([]);
+  const [markedIndices, setMarkedIndices] = useState<number[]>([12]);
   const [calledWords, setCalledWords] = useState<string[]>([]);
-  const [calledSet, setCalledSet] = useState<Set<string>>(new Set());
-  const [selectedCells, setSelectedCells] = useState<Set<number>>(new Set());
-  const [winningCells, setWinningCells] = useState<Set<number>>(new Set());
-  const [isAutoMode, setIsAutoMode] = useState(true);
-  const [isRunning, setIsRunning] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const [mistakes, setMistakes] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [showCategorySelect, setShowCategorySelect] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const [gameState, setGameState] = useState<WordGameStatePayload | null>(null);
+  const [resultBanner, setResultBanner] = useState<WordBingoResultPayload | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const startGame = useCallback((ws: WordSet) => {
-    const wordsForRound = ws.name === ENGLISH_VOCAB_SET_NAME
-      ? shuffle(ws.words).slice(0, ENGLISH_VOCAB_ROUND_SIZE)
-      : ws.words;
-    const shuffled = shuffle(wordsForRound);
-    const boardWords = shuffled.slice(0, 24);
-    boardWords.splice(12, 0, "★ FREE");
-    const pool = shuffle(shuffled);
-    setBoard(boardWords);
-    setWordPool(pool);
-    setPoolIndex(0);
-    setCalledWords([]);
-    setCalledSet(new Set());
-    setSelectedCells(new Set([12]));
-    setWinningCells(new Set());
-    setIsRunning(false);
-    setGameOver(false);
-    setMistakes(0);
-    setTimeElapsed(0);
-    setSelectedSet(ws);
-    setShowCategorySelect(false);
+  const calledSet = useMemo(() => new Set(calledWords), [calledWords]);
+  const selectedCells = useMemo(() => new Set(markedIndices), [markedIndices]);
+  const amIHost = Boolean(gameState?.players.find((p) => p.socketId === socketRef.current?.id)?.isHost);
+  const displayRoomId = roomId.replace(/^WORD_/, "");
+
+  useEffect(() => {
+    const socket = io(SERVER_URL, {
+      transports: ["websocket", "polling"],
+      timeout: 5000,
+      reconnectionAttempts: 5,
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setIsConnected(true);
+      setErrorMsg("");
+    });
+
+    socket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    socket.on("connect_error", () => {
+      setIsConnected(false);
+      setErrorMsg(`Cannot connect to server at ${SERVER_URL}`);
+    });
+
+    socket.on("word_game_state", (payload: WordGameStatePayload) => {
+      setGameState(payload);
+      setRoomId(payload.roomId);
+      setCalledWords(payload.calledWords || []);
+      const me = payload.players.some((player) => player.socketId === socket.id);
+      if (me) setJoined(true);
+    });
+
+    socket.on("word_your_card", (payload: WordCardPayload) => {
+      setCard(payload.card || []);
+      setMarkedIndices(payload.marked || [12]);
+      setJoined(true);
+    });
+
+    socket.on("word_called", (payload: WordCalledPayload) => {
+      setCalledWords(payload.calledWords || []);
+    });
+
+    socket.on("word_mark_updated", ({ marked }: { marked: number[] }) => {
+      setMarkedIndices(marked || [12]);
+    });
+
+    socket.on("word_mark_rejected", ({ reason }: { reason: string }) => {
+      setErrorMsg(reason || "Invalid mark");
+      setTimeout(() => setErrorMsg(""), 1600);
+    });
+
+    socket.on("word_bingo_result", (payload: WordBingoResultPayload) => {
+      setResultBanner(payload);
+    });
+
+    socket.on("word_error", ({ message }: { message: string }) => {
+      setErrorMsg(message || "Unable to process request");
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
-  // Timer
-  useEffect(() => {
-    if (isRunning && !gameOver) {
-      timerRef.current = setInterval(() => setTimeElapsed(t => t + 1), 1000);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [isRunning, gameOver]);
+  const joinRoom = () => {
+    const normalizedRoom = roomIdInput.trim().toUpperCase() || "MAIN";
+    const normalizedName = playerName.trim() || "Player";
+    setErrorMsg("");
+    setResultBanner(null);
 
-  // Auto caller
-  useEffect(() => {
-    if (!isAutoMode || !isRunning || gameOver) return;
-    const id = setInterval(() => callNextWord(), 3000);
-    return () => clearInterval(id);
-  }, [isAutoMode, isRunning, gameOver, poolIndex]);
+    socketRef.current?.emit("join_word_game", {
+      roomId: normalizedRoom,
+      playerName: normalizedName,
+    });
+  };
 
-  const callNextWord = useCallback(() => {
-    if (gameOver) return;
-    let idx = poolIndex;
-    while (idx < wordPool.length && calledSet.has(wordPool[idx])) idx++;
-    if (idx >= wordPool.length) return;
-    const word = wordPool[idx];
-    setCalledWords(prev => [...prev, word]);
-    setCalledSet(prev => new Set(prev).add(word));
-    setPoolIndex(idx + 1);
-    if (!isRunning) setIsRunning(true);
-    playTone(600 + Math.random() * 400, 0.15);
-  }, [poolIndex, wordPool, calledSet, gameOver, isRunning]);
+  const startMatch = () => {
+    setErrorMsg("");
+    setResultBanner(null);
+    socketRef.current?.emit("start_word_game", {
+      roomId: displayRoomId || roomIdInput,
+      categoryName: selectedCategory.name,
+      words: selectedCategory.words,
+    });
+  };
 
-  const checkWin = useCallback((cells: Set<number>) => {
-    for (const line of WIN_LINES) {
-      if (line.every(i => cells.has(i))) {
-        return new Set(line);
+  const restartMatch = () => {
+    setResultBanner(null);
+    socketRef.current?.emit("restart_word_game", {
+      roomId: displayRoomId || roomIdInput,
+    });
+  };
+
+  const markCell = (index: number) => {
+    if (!card.length || markedIndices.includes(index) || gameState?.status !== "playing") return;
+    if (index !== 12) {
+      const word = card[index];
+      if (typeof word !== "string" || !calledSet.has(word)) {
+        setErrorMsg("You can only mark called words.");
+        setTimeout(() => setErrorMsg(""), 1400);
+        return;
       }
     }
-    return null;
-  }, []);
 
-  const onCellClick = useCallback((index: number) => {
-    if (gameOver || index === 12) return;
-    const word = board[index];
-    if (selectedCells.has(index)) return;
-    if (!calledSet.has(word)) {
-      setMistakes(m => m + 1);
-      playTone(200, 0.3);
-      return;
-    }
-    playTone(800, 0.1);
-    const next = new Set(selectedCells).add(index);
-    setSelectedCells(next);
-    const win = checkWin(next);
-    if (win) {
-      setWinningCells(win);
-      setGameOver(true);
-      setIsRunning(false);
-      [0, 100, 200, 300].forEach((d, i) => setTimeout(() => playTone(523 + i * 100, 0.3), d));
-    }
-  }, [board, calledSet, selectedCells, gameOver, checkWin]);
+    socketRef.current?.emit("mark_word", {
+      roomId: displayRoomId || roomIdInput,
+      index,
+    });
+  };
 
-  // Category select screen
-  if (!selectedSet || showCategorySelect) {
-    return (
-      <div className="min-h-screen relative overflow-hidden">
-        <ParticleBackground />
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
-          <div className="absolute top-4 left-4">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="font-display text-xs tracking-wider">
-                <ArrowLeft className="w-4 h-4 mr-1" /> Home
-              </Button>
-            </Link>
-          </div>
-          <div className="absolute top-4 right-4"><ThemeToggle /></div>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-8">
-            <h1 className="font-display text-4xl sm:text-5xl font-black text-foreground text-glow-purple">
-              🔤 Word Bingo
-            </h1>
-            <p className="text-muted-foreground font-body text-lg">Choose a category</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {wordSets.map(ws => (
-                <motion.button
-                  key={ws.name}
-                  whileHover={{ scale: 1.05, y: -4 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => startGame(ws)}
-                  className="glass-panel p-6 sm:p-8 text-center space-y-2 cursor-pointer hover:shadow-[0_0_30px_hsl(270_80%_60%/0.3)]"
-                >
-                  <span className="text-4xl block">{ws.icon}</span>
-                  <span className="font-display text-lg font-bold text-foreground">{ws.name}</span>
-                  <span className="font-body text-sm text-muted-foreground block">{ws.words.length}+ words</span>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  const claimBingo = () => {
+    socketRef.current?.emit("word_bingo_claim", {
+      roomId: displayRoomId || roomIdInput,
+    });
+  };
+
+  const boardForUi = card.map((word) => word ?? "★ FREE");
 
   return (
     <div className="min-h-screen relative overflow-hidden">
       <ParticleBackground />
-      <div className="relative z-10 flex flex-col items-center px-4 py-6 sm:py-10 gap-5 sm:gap-6">
-        {/* Header */}
-        <div className="w-full max-w-3xl flex items-center justify-between">
+      <div className="relative z-10 flex flex-col items-center px-4 py-6 sm:py-10 gap-5 sm:gap-6 max-w-6xl mx-auto">
+        <div className="w-full max-w-5xl flex items-center justify-between">
           <Link to="/">
             <Button variant="ghost" size="sm" className="font-display text-xs tracking-wider">
               <ArrowLeft className="w-4 h-4 mr-1" /> Home
             </Button>
           </Link>
           <h1 className="font-display text-xl sm:text-2xl font-black text-foreground">
-            🔤 Word Bingo
+            🔤 Multiplayer Word Bingo
           </h1>
           <ThemeToggle />
         </div>
 
-        {/* Stats bar */}
-        <div className="flex flex-wrap gap-3 sm:gap-6 justify-center text-xs sm:text-sm font-body text-muted-foreground">
-          <span>📚 {selectedSet.name}</span>
-          <span>⏱ {Math.floor(timeElapsed / 60)}:{String(timeElapsed % 60).padStart(2, "0")}</span>
-          <span>📢 {calledWords.length} called</span>
-          <span>❌ {mistakes} mistakes</span>
-        </div>
+        {!joined ? (
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/70 backdrop-blur p-6 space-y-4">
+            <h2 className="font-display text-xl font-black text-foreground text-center">Join Word Bingo Room</h2>
 
-        {/* Word Caller */}
-        <WordCaller
-          currentWord={calledWords.length > 0 ? calledWords[calledWords.length - 1] : null}
-          calledWords={calledWords}
-          totalWords={wordPool.length}
-        />
+            <div className="space-y-2">
+              <label className="font-body text-xs uppercase tracking-wider text-muted-foreground">Your Name</label>
+              <input
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                maxLength={24}
+                className="w-full h-11 rounded-lg border border-border bg-background px-3 text-foreground"
+                placeholder="Player name"
+              />
+            </div>
 
-        {/* Controls */}
-        <ControlPanel
-          isAutoMode={isAutoMode}
-          isRunning={isRunning}
-          gameOver={gameOver}
-          onToggleMode={() => setIsAutoMode(p => !p)}
-          onToggleRunning={() => setIsRunning(p => !p)}
-          onCallNext={callNextWord}
-          onRestart={() => startGame(selectedSet)}
-        />
+            <div className="space-y-2">
+              <label className="font-body text-xs uppercase tracking-wider text-muted-foreground">Room ID</label>
+              <input
+                value={roomIdInput}
+                onChange={(e) => setRoomIdInput(e.target.value)}
+                maxLength={20}
+                className="w-full h-11 rounded-lg border border-border bg-background px-3 text-foreground uppercase"
+                placeholder="MAIN"
+              />
+            </div>
 
-        {/* Board */}
-        <BingoBoard
-          board={board}
-          selectedCells={selectedCells}
-          calledWords={calledSet}
-          winningCells={winningCells}
-          onCellClick={onCellClick}
-        />
+            <Button className="w-full font-display tracking-wider" disabled={!isConnected} onClick={joinRoom}>
+              {isConnected ? "Join Room" : "Connecting..."}
+            </Button>
 
-        {/* Result Modal */}
-        {gameOver && (
-          <ResultModal
-            timeElapsed={timeElapsed}
-            wordsCalledCount={calledWords.length}
-            mistakes={mistakes}
-            onRestart={() => startGame(selectedSet)}
-            onChangeCategory={() => setShowCategorySelect(true)}
-          />
+            {errorMsg && <p className="text-sm text-destructive font-medium">{errorMsg}</p>}
+          </div>
+        ) : (
+          <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border bg-card/70 backdrop-blur p-4 sm:p-5 space-y-3">
+                <div className="flex flex-wrap items-center gap-3 justify-between">
+                  <div>
+                    <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">Room</p>
+                    <p className="font-display text-xl font-black text-foreground">{displayRoomId}</p>
+                  </div>
+                  <div>
+                    <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">Status</p>
+                    <p className="font-display text-lg font-bold text-foreground">{gameState?.status || "waiting"}</p>
+                  </div>
+                  <div>
+                    <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">Players</p>
+                    <p className="font-display text-lg font-bold text-foreground">{gameState?.players.length || 0}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {gameState?.players.map((player) => (
+                    <span
+                      key={player.socketId}
+                      className={`px-2.5 py-1 rounded-full text-xs border ${
+                        player.isHost
+                          ? "border-primary/50 text-primary bg-primary/10"
+                          : "border-border text-muted-foreground bg-background/60"
+                      }`}
+                    >
+                      {player.name}
+                      {player.isHost ? " (Host)" : ""}
+                    </span>
+                  ))}
+                </div>
+
+                {amIHost && (
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    <select
+                      className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                      value={selectedCategory.name}
+                      onChange={(e) => {
+                        const found = wordSets.find((w) => w.name === e.target.value);
+                        if (found) setSelectedCategory(found);
+                      }}
+                    >
+                      {wordSets.map((set) => (
+                        <option key={set.name} value={set.name}>{set.name}</option>
+                      ))}
+                    </select>
+                    <Button onClick={startMatch}>Start</Button>
+                    <Button variant="outline" onClick={restartMatch}>Restart</Button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={claimBingo}
+                    disabled={gameState?.status !== "playing" || !card.length}
+                    className="font-display tracking-wider"
+                  >
+                    Claim Bingo
+                  </Button>
+                </div>
+
+                {errorMsg && <p className="text-sm text-destructive font-medium">{errorMsg}</p>}
+              </div>
+
+              <WordCaller
+                currentWord={calledWords.length > 0 ? calledWords[calledWords.length - 1] : null}
+                calledWords={calledWords}
+                totalWords={Math.max(calledWords.length, selectedCategory.words.length)}
+              />
+
+              {card.length > 0 ? (
+                <BingoBoard
+                  board={boardForUi}
+                  selectedCells={selectedCells}
+                  calledWords={calledSet}
+                  winningCells={new Set<number>()}
+                  onCellClick={markCell}
+                />
+              ) : (
+                <div className="rounded-xl border border-border p-5 text-center text-muted-foreground">
+                  Waiting for host to start the match...
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border bg-card/70 backdrop-blur p-4">
+                <p className="font-body text-xs uppercase tracking-wider text-muted-foreground mb-2">Called Words</p>
+                <div className="max-h-[420px] overflow-y-auto flex flex-wrap gap-2">
+                  {calledWords.map((word) => (
+                    <span key={word} className="text-xs px-2 py-1 rounded-full border border-primary/40 bg-primary/10 text-primary">
+                      {word}
+                    </span>
+                  ))}
+                  {calledWords.length === 0 && <p className="text-sm text-muted-foreground">No words called yet.</p>}
+                </div>
+              </div>
+
+              {resultBanner && (
+                <div className={`rounded-2xl border p-4 ${resultBanner.valid ? "border-emerald-400/50 bg-emerald-500/15" : "border-destructive/40 bg-destructive/10"}`}>
+                  <p className="font-display text-base font-bold text-foreground">{resultBanner.message}</p>
+                  {resultBanner.valid && <p className="text-sm text-muted-foreground mt-1">Winner: {resultBanner.winnerName}</p>}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

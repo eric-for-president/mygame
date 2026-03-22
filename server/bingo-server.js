@@ -9,7 +9,9 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, "..", "dist");
 const PORT = Number(process.env.PORT || process.env.BINGO_PORT || 4001);
 const AUTO_DRAW_MS = Number(process.env.BINGO_AUTO_DRAW_MS || 4000);
+const WORD_AUTO_CALL_MS = Number(process.env.WORD_AUTO_CALL_MS || 4000);
 const MAX_NUM = 75;
+const ENGLISH_VOCAB_SET_NAME = "English Vocabulary (IELTS + SAT)";
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -42,9 +44,13 @@ const WIN_LINES = (() => {
 /** @typedef {{ cardId: string, card: (number | null)[], marked: Set<number> }} CardState */
 /** @typedef {{ socketId: string, name: string, cards: CardState[] }} PlayerState */
 /** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, PlayerState>, drawnNumbers: number[], remainingNumbers: number[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null }} RoomState */
+/** @typedef {{ socketId: string, name: string, card: (string | null)[] | null, marked: Set<number> }} WordPlayerState */
+/** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, WordPlayerState>, calledWords: string[], drawPool: string[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null, categoryName: string | null, sourceWords: string[] }} WordRoomState */
 
 /** @type {Map<string, RoomState>} */
 const rooms = new Map();
+/** @type {Map<string, WordRoomState>} */
+const wordRooms = new Map();
 
 function shuffle(arr) {
   const copy = [...arr];
@@ -220,6 +226,143 @@ function drawNextNumber(io, room) {
 function startAutoDraw(io, room) {
   stopAutoDraw(room);
   room.drawTimer = setInterval(() => drawNextNumber(io, room), AUTO_DRAW_MS);
+}
+
+function sanitizeWords(words) {
+  const safeWords = Array.isArray(words) ? words : [];
+  const deduped = new Set();
+  for (const item of safeWords) {
+    const cleaned = String(item || "").trim();
+    if (!cleaned) continue;
+    deduped.add(cleaned);
+  }
+  return [...deduped];
+}
+
+function createWordRoom(roomId, hostSocketId) {
+  return {
+    id: roomId,
+    status: "waiting",
+    players: new Map(),
+    calledWords: [],
+    drawPool: [],
+    winnerSocketId: null,
+    hostSocketId,
+    drawTimer: null,
+    categoryName: null,
+    sourceWords: [],
+  };
+}
+
+function getOrCreateWordRoom(roomId, hostSocketId) {
+  const existing = wordRooms.get(roomId);
+  if (existing) return existing;
+  const room = createWordRoom(roomId, hostSocketId);
+  wordRooms.set(roomId, room);
+  return room;
+}
+
+function createWordCard(words) {
+  const selected = shuffle(words).slice(0, 24);
+  const card = [...selected];
+  card.splice(12, 0, null);
+  return card;
+}
+
+function wordCardSignature(card) {
+  return card.map((w) => (w === null ? "FREE" : w)).join("|");
+}
+
+function createUniqueWordCards(room, words) {
+  const signatures = new Set();
+  for (const player of room.players.values()) {
+    if (player.card) signatures.add(wordCardSignature(player.card));
+  }
+
+  /** @type {Map<string, (string | null)[]>} */
+  const cardsByPlayer = new Map();
+  for (const player of room.players.values()) {
+    let card = createWordCard(words);
+    while (signatures.has(wordCardSignature(card))) {
+      card = createWordCard(words);
+    }
+    signatures.add(wordCardSignature(card));
+    cardsByPlayer.set(player.socketId, card);
+  }
+
+  return cardsByPlayer;
+}
+
+function isWinningWordCard(card, calledSet) {
+  if (!card) return false;
+  for (const line of WIN_LINES) {
+    const ok = line.every((idx) => {
+      if (idx === 12) return true;
+      const word = card[idx];
+      return typeof word === "string" && calledSet.has(word);
+    });
+    if (ok) return true;
+  }
+  return false;
+}
+
+function serializeWordRoom(room) {
+  const winner = room.winnerSocketId ? room.players.get(room.winnerSocketId) : null;
+  return {
+    roomId: room.id,
+    status: room.status,
+    players: [...room.players.values()].map((player) => ({
+      socketId: player.socketId,
+      name: player.name,
+      isHost: room.hostSocketId === player.socketId,
+    })),
+    calledWords: room.calledWords,
+    winnerSocketId: room.winnerSocketId,
+    winnerName: winner ? winner.name : null,
+    categoryName: room.categoryName,
+  };
+}
+
+function emitWordRoomState(io, room) {
+  io.to(room.id).emit("word_game_state", serializeWordRoom(room));
+}
+
+function stopWordAutoCall(room) {
+  if (room.drawTimer) {
+    clearInterval(room.drawTimer);
+    room.drawTimer = null;
+  }
+}
+
+function callNextWord(io, room) {
+  if (room.status !== "playing") {
+    stopWordAutoCall(room);
+    return;
+  }
+
+  if (room.drawPool.length === 0) {
+    room.status = "finished";
+    stopWordAutoCall(room);
+    emitWordRoomState(io, room);
+    return;
+  }
+
+  const nextWord = room.drawPool.pop();
+  if (typeof nextWord !== "string") return;
+
+  room.calledWords.push(nextWord);
+  io.to(room.id).emit("word_called", {
+    roomId: room.id,
+    word: nextWord,
+    calledWords: room.calledWords,
+  });
+
+  emitWordRoomState(io, room);
+}
+
+function startWordAutoCall(io, room) {
+  stopWordAutoCall(room);
+  room.drawTimer = setInterval(() => callNextWord(io, room), WORD_AUTO_CALL_MS);
 }
 
 function sendFile(res, filePath) {
@@ -441,6 +584,190 @@ io.on("connection", (socket) => {
     emitRoomState(io, room);
   });
 
+  socket.on("join_word_game", (payload = {}) => {
+    const baseRoomId = sanitizeRoomId(payload.roomId);
+    const roomId = `WORD_${baseRoomId}`;
+    const name = String(payload.playerName || "Player").trim().slice(0, 24) || "Player";
+
+    const room = getOrCreateWordRoom(roomId, socket.id);
+    socket.join(roomId);
+
+    room.players.set(socket.id, {
+      socketId: socket.id,
+      name,
+      card: room.players.get(socket.id)?.card || null,
+      marked: room.players.get(socket.id)?.marked || new Set([12]),
+    });
+
+    const existingPlayer = room.players.get(socket.id);
+    if (existingPlayer?.card) {
+      socket.emit("word_your_card", {
+        card: existingPlayer.card,
+        marked: [...existingPlayer.marked],
+      });
+    }
+
+    emitWordRoomState(io, room);
+  });
+
+  socket.on("start_word_game", (payload = {}) => {
+    const roomId = `WORD_${sanitizeRoomId(payload.roomId)}`;
+    const room = wordRooms.get(roomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+
+    const categoryName = String(payload.categoryName || "").trim() || "Custom Vocabulary";
+    const sourceWords = sanitizeWords(payload.words);
+    if (sourceWords.length < 24) {
+      io.to(socket.id).emit("word_error", { message: "Need at least 24 unique words to start." });
+      return;
+    }
+
+    room.categoryName = categoryName;
+    room.sourceWords = sourceWords;
+
+    const roundWords = categoryName === ENGLISH_VOCAB_SET_NAME
+      ? shuffle(sourceWords).slice(0, Math.min(100, sourceWords.length))
+      : sourceWords;
+    if (roundWords.length < 24) {
+      io.to(socket.id).emit("word_error", { message: "Round word pool is too small." });
+      return;
+    }
+
+    room.calledWords = [];
+    room.drawPool = shuffle([...roundWords]);
+    room.winnerSocketId = null;
+    room.status = "playing";
+
+    const cardsByPlayer = createUniqueWordCards(room, roundWords);
+    for (const player of room.players.values()) {
+      const card = cardsByPlayer.get(player.socketId);
+      if (!card) continue;
+      player.card = card;
+      player.marked = new Set([12]);
+      io.to(player.socketId).emit("word_your_card", {
+        card,
+        marked: [...player.marked],
+      });
+    }
+
+    emitWordRoomState(io, room);
+    startWordAutoCall(io, room);
+  });
+
+  socket.on("mark_word", ({ roomId, index }) => {
+    const resolvedRoomId = `WORD_${sanitizeRoomId(roomId)}`;
+    const room = wordRooms.get(resolvedRoomId);
+    if (!room || room.status !== "playing") return;
+
+    const player = room.players.get(socket.id);
+    if (!player || !player.card) return;
+
+    const idx = Number(index);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= 25) return;
+    if (idx === 12) {
+      player.marked.add(12);
+      io.to(socket.id).emit("word_mark_updated", { marked: [...player.marked] });
+      return;
+    }
+
+    const value = player.card[idx];
+    if (typeof value !== "string") return;
+
+    const calledSet = new Set(room.calledWords);
+    if (!calledSet.has(value)) {
+      io.to(socket.id).emit("word_mark_rejected", { reason: "Word has not been called yet." });
+      return;
+    }
+
+    player.marked.add(idx);
+    io.to(socket.id).emit("word_mark_updated", { marked: [...player.marked] });
+  });
+
+  socket.on("word_bingo_claim", ({ roomId }) => {
+    const resolvedRoomId = `WORD_${sanitizeRoomId(roomId)}`;
+    const room = wordRooms.get(resolvedRoomId);
+    if (!room) return;
+
+    const player = room.players.get(socket.id);
+    if (!player) return;
+
+    if (room.status !== "playing") {
+      io.to(socket.id).emit("word_bingo_result", {
+        valid: false,
+        roomId: room.id,
+        claimantSocketId: socket.id,
+        claimantName: player.name,
+        message: "Game is not in playing state.",
+      });
+      return;
+    }
+
+    const valid = isWinningWordCard(player.card, new Set(room.calledWords));
+    if (!valid) {
+      io.to(room.id).emit("word_bingo_result", {
+        valid: false,
+        roomId: room.id,
+        claimantSocketId: socket.id,
+        claimantName: player.name,
+        message: `${player.name}'s Word Bingo claim was rejected.`,
+      });
+      return;
+    }
+
+    room.status = "finished";
+    room.winnerSocketId = socket.id;
+    stopWordAutoCall(room);
+
+    io.to(room.id).emit("word_bingo_result", {
+      valid: true,
+      roomId: room.id,
+      claimantSocketId: socket.id,
+      claimantName: player.name,
+      winnerSocketId: socket.id,
+      winnerName: player.name,
+      message: `${player.name} has Word Bingo!`,
+    });
+
+    emitWordRoomState(io, room);
+  });
+
+  socket.on("restart_word_game", ({ roomId }) => {
+    const resolvedRoomId = `WORD_${sanitizeRoomId(roomId)}`;
+    const room = wordRooms.get(resolvedRoomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+
+    if (!room.categoryName || room.sourceWords.length < 24) {
+      io.to(socket.id).emit("word_error", { message: "Start a game first to initialize words." });
+      return;
+    }
+
+    stopWordAutoCall(room);
+
+    const roundWords = room.categoryName === ENGLISH_VOCAB_SET_NAME
+      ? shuffle(room.sourceWords).slice(0, Math.min(100, room.sourceWords.length))
+      : room.sourceWords;
+
+    room.calledWords = [];
+    room.drawPool = shuffle([...roundWords]);
+    room.winnerSocketId = null;
+    room.status = "playing";
+
+    const cardsByPlayer = createUniqueWordCards(room, roundWords);
+    for (const player of room.players.values()) {
+      const card = cardsByPlayer.get(player.socketId);
+      if (!card) continue;
+      player.card = card;
+      player.marked = new Set([12]);
+      io.to(player.socketId).emit("word_your_card", {
+        card,
+        marked: [...player.marked],
+      });
+    }
+
+    emitWordRoomState(io, room);
+    startWordAutoCall(io, room);
+  });
+
   socket.on("disconnect", () => {
     for (const [roomId, room] of rooms.entries()) {
       if (!room.players.has(socket.id)) {
@@ -458,6 +785,25 @@ io.on("connection", (socket) => {
         rooms.delete(roomId);
       } else {
         emitRoomState(io, room);
+      }
+    }
+
+    for (const [roomId, room] of wordRooms.entries()) {
+      if (!room.players.has(socket.id)) {
+        continue;
+      }
+
+      room.players.delete(socket.id);
+      if (room.hostSocketId === socket.id) {
+        const nextHost = room.players.values().next().value;
+        room.hostSocketId = nextHost ? nextHost.socketId : null;
+      }
+
+      if (room.players.size === 0) {
+        stopWordAutoCall(room);
+        wordRooms.delete(roomId);
+      } else {
+        emitWordRoomState(io, room);
       }
     }
   });
