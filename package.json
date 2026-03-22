@@ -5,6 +5,7 @@
   "type": "module",
 "scripts": {
   "dev": "vite",
+  "bingo:server": "node server/bingo-server.js",
   "build": "vite build",
   "start": "serve -s dist",
   "build:dev": "vite build --mode development",
@@ -62,6 +63,8 @@
     "react-hook-form": "^7.61.1",
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "recharts": "^2.15.4",
     "serve": "^14.2.6",
     "sonner": "^1.7.4",
