@@ -40,6 +40,7 @@ const WordBingo = () => {
   const selectedCells = useMemo(() => new Set(markedIndices), [markedIndices]);
   const amIHost = Boolean(gameState?.players.find((p) => p.socketId === socketRef.current?.id)?.isHost);
   const displayRoomId = roomId.replace(/^WORD_/, "");
+  const activeCategoryName = gameState?.categoryName || selectedCategory.name;
 
   useEffect(() => {
     const socket = io(SERVER_URL, {
@@ -67,6 +68,12 @@ const WordBingo = () => {
       setGameState(payload);
       setRoomId(payload.roomId);
       setCalledWords(payload.calledWords || []);
+      if (payload.categoryName) {
+        const syncedCategory = wordSets.find((set) => set.name === payload.categoryName);
+        if (syncedCategory) {
+          setSelectedCategory(syncedCategory);
+        }
+      }
       const me = payload.players.some((player) => player.socketId === socket.id);
       if (me) setJoined(true);
     });
@@ -122,6 +129,21 @@ const WordBingo = () => {
       roomId: displayRoomId || roomIdInput,
       categoryName: selectedCategory.name,
       words: selectedCategory.words,
+    });
+  };
+
+  const changeCategory = (categoryName: string) => {
+    const found = wordSets.find((set) => set.name === categoryName);
+    if (!found) return;
+
+    setSelectedCategory(found);
+
+    if (!amIHost) return;
+
+    socketRef.current?.emit("set_word_category", {
+      roomId: displayRoomId || roomIdInput,
+      categoryName: found.name,
+      words: found.words,
     });
   };
 
@@ -240,24 +262,27 @@ const WordBingo = () => {
                   ))}
                 </div>
 
-                {amIHost && (
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
-                    <select
-                      className="h-10 rounded-md border border-border bg-background px-2 text-sm"
-                      value={selectedCategory.name}
-                      onChange={(e) => {
-                        const found = wordSets.find((w) => w.name === e.target.value);
-                        if (found) setSelectedCategory(found);
-                      }}
-                    >
-                      {wordSets.map((set) => (
-                        <option key={set.name} value={set.name}>{set.name}</option>
-                      ))}
-                    </select>
-                    <Button onClick={startMatch}>Start</Button>
-                    <Button variant="outline" onClick={restartMatch}>Restart</Button>
-                  </div>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-center">
+                  <select
+                    className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                    value={activeCategoryName}
+                    onChange={(e) => changeCategory(e.target.value)}
+                    disabled={!amIHost || gameState?.status === "playing"}
+                    aria-label="Word category"
+                  >
+                    {wordSets.map((set) => (
+                      <option key={set.name} value={set.name}>{set.name}</option>
+                    ))}
+                  </select>
+                  <Button onClick={startMatch} disabled={!amIHost}>Start</Button>
+                  <Button variant="outline" onClick={restartMatch} disabled={!amIHost}>Restart</Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {amIHost
+                    ? "Host can choose the category before the game starts."
+                    : `Host selected category: ${activeCategoryName}`}
+                </p>
 
                 <div className="flex flex-wrap gap-2">
                   <Button

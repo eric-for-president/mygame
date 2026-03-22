@@ -610,13 +610,33 @@ io.on("connection", (socket) => {
     emitWordRoomState(io, room);
   });
 
+  socket.on("set_word_category", (payload = {}) => {
+    const roomId = `WORD_${sanitizeRoomId(payload.roomId)}`;
+    const room = wordRooms.get(roomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    if (room.status === "playing") return;
+
+    const categoryName = String(payload.categoryName || "").trim() || "Custom Vocabulary";
+    const sourceWords = sanitizeWords(payload.words);
+    if (sourceWords.length < 24) {
+      io.to(socket.id).emit("word_error", { message: "Need at least 24 unique words for a category." });
+      return;
+    }
+
+    room.categoryName = categoryName;
+    room.sourceWords = sourceWords;
+    emitWordRoomState(io, room);
+  });
+
   socket.on("start_word_game", (payload = {}) => {
     const roomId = `WORD_${sanitizeRoomId(payload.roomId)}`;
     const room = wordRooms.get(roomId);
     if (!room || room.hostSocketId !== socket.id) return;
 
-    const categoryName = String(payload.categoryName || "").trim() || "Custom Vocabulary";
-    const sourceWords = sanitizeWords(payload.words);
+    const requestedCategoryName = String(payload.categoryName || "").trim();
+    const categoryName = requestedCategoryName || room.categoryName || "Custom Vocabulary";
+    const requestedWords = sanitizeWords(payload.words);
+    const sourceWords = requestedWords.length >= 24 ? requestedWords : room.sourceWords;
     if (sourceWords.length < 24) {
       io.to(socket.id).emit("word_error", { message: "Need at least 24 unique words to start." });
       return;
