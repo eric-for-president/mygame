@@ -11,6 +11,9 @@ import ControlPanel from "./components/ControlPanel";
 import ResultModal from "./components/ResultModal";
 import { wordSets, type WordSet } from "./data/wordSets";
 
+const ENGLISH_VOCAB_SET_NAME = "English Vocabulary (IELTS + SAT)";
+const ENGLISH_VOCAB_ROUND_SIZE = 100;
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -63,7 +66,10 @@ const WordBingo = () => {
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   const startGame = useCallback((ws: WordSet) => {
-    const shuffled = shuffle(ws.words);
+    const wordsForRound = ws.name === ENGLISH_VOCAB_SET_NAME
+      ? shuffle(ws.words).slice(0, ENGLISH_VOCAB_ROUND_SIZE)
+      : ws.words;
+    const shuffled = shuffle(wordsForRound);
     const boardWords = shuffled.slice(0, 24);
     boardWords.splice(12, 0, "★ FREE");
     const pool = shuffle(shuffled);
