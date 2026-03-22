@@ -577,10 +577,16 @@ const ImposterClassroom = () => {
   }, []);
 
   const replay = useCallback(() => {
+    if (players.length >= 3) {
+      setVotes({});
+      startGame(players.map((p) => p.name));
+      return;
+    }
+
     setPlayers([]);
     setVotes({});
     setPhase("lobby");
-  }, []);
+  }, [players, startGame]);
 
   const imposter = players.find((p) => p.isImposter);
 
