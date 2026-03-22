@@ -45,7 +45,7 @@ const WIN_LINES = (() => {
 /** @typedef {{ socketId: string, name: string, cards: CardState[] }} PlayerState */
 /** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, PlayerState>, drawnNumbers: number[], remainingNumbers: number[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null }} RoomState */
 /** @typedef {{ socketId: string, name: string, card: (string | null)[] | null, marked: Set<number> }} WordPlayerState */
-/** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, WordPlayerState>, calledWords: string[], drawPool: string[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null, categoryName: string | null, sourceWords: string[] }} WordRoomState */
+/** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, WordPlayerState>, calledWords: string[], drawPool: string[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null, categoryName: string | null, sourceWords: string[], callMode: "auto"|"manual", roundWordCount: number }} WordRoomState */
 
 /** @type {Map<string, RoomState>} */
 const rooms = new Map();
@@ -251,6 +251,8 @@ function createWordRoom(roomId, hostSocketId) {
     drawTimer: null,
     categoryName: null,
     sourceWords: [],
+    callMode: "auto",
+    roundWordCount: 0,
   };
 }
 
@@ -320,6 +322,8 @@ function serializeWordRoom(room) {
     winnerSocketId: room.winnerSocketId,
     winnerName: winner ? winner.name : null,
     categoryName: room.categoryName,
+    callMode: room.callMode,
+    roundWordCount: room.roundWordCount,
   };
 }
 
@@ -625,6 +629,28 @@ io.on("connection", (socket) => {
 
     room.categoryName = categoryName;
     room.sourceWords = sourceWords;
+    room.roundWordCount = categoryName === ENGLISH_VOCAB_SET_NAME
+      ? Math.min(100, sourceWords.length)
+      : sourceWords.length;
+    emitWordRoomState(io, room);
+  });
+
+  socket.on("set_word_call_mode", (payload = {}) => {
+    const roomId = `WORD_${sanitizeRoomId(payload.roomId)}`;
+    const room = wordRooms.get(roomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+
+    const mode = payload.mode === "manual" ? "manual" : "auto";
+    room.callMode = mode;
+
+    if (room.status === "playing") {
+      if (mode === "auto") {
+        startWordAutoCall(io, room);
+      } else {
+        stopWordAutoCall(room);
+      }
+    }
+
     emitWordRoomState(io, room);
   });
 
@@ -657,6 +683,8 @@ io.on("connection", (socket) => {
     room.drawPool = shuffle([...roundWords]);
     room.winnerSocketId = null;
     room.status = "playing";
+    room.callMode = payload.callMode === "manual" ? "manual" : room.callMode;
+    room.roundWordCount = roundWords.length;
 
     const cardsByPlayer = createUniqueWordCards(room, roundWords);
     for (const player of room.players.values()) {
@@ -671,7 +699,20 @@ io.on("connection", (socket) => {
     }
 
     emitWordRoomState(io, room);
-    startWordAutoCall(io, room);
+    if (room.callMode === "auto") {
+      startWordAutoCall(io, room);
+    } else {
+      stopWordAutoCall(room);
+    }
+  });
+
+  socket.on("word_call_next", ({ roomId }) => {
+    const resolvedRoomId = `WORD_${sanitizeRoomId(roomId)}`;
+    const room = wordRooms.get(resolvedRoomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    if (room.status !== "playing" || room.callMode !== "manual") return;
+
+    callNextWord(io, room);
   });
 
   socket.on("mark_word", ({ roomId, index }) => {
@@ -771,6 +812,7 @@ io.on("connection", (socket) => {
     room.drawPool = shuffle([...roundWords]);
     room.winnerSocketId = null;
     room.status = "playing";
+    room.roundWordCount = roundWords.length;
 
     const cardsByPlayer = createUniqueWordCards(room, roundWords);
     for (const player of room.players.values()) {
@@ -785,7 +827,11 @@ io.on("connection", (socket) => {
     }
 
     emitWordRoomState(io, room);
-    startWordAutoCall(io, room);
+    if (room.callMode === "auto") {
+      startWordAutoCall(io, room);
+    } else {
+      stopWordAutoCall(room);
+    }
   });
 
   socket.on("disconnect", () => {

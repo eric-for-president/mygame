@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, SkipForward } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -11,6 +11,7 @@ import WordCaller from "./components/WordCaller";
 import { wordSets, type WordSet } from "./data/wordSets";
 import type {
   WordBingoResultPayload,
+  WordCallMode,
   WordCalledPayload,
   WordCardPayload,
   WordGameStatePayload,
@@ -41,6 +42,11 @@ const WordBingo = () => {
   const amIHost = Boolean(gameState?.players.find((p) => p.socketId === socketRef.current?.id)?.isHost);
   const displayRoomId = roomId.replace(/^WORD_/, "");
   const activeCategoryName = gameState?.categoryName || selectedCategory.name;
+  const callMode: WordCallMode = gameState?.callMode || "auto";
+  const effectiveRoundWordCount = gameState?.roundWordCount
+    || (activeCategoryName === "English Vocabulary (IELTS + SAT)"
+      ? Math.min(100, selectedCategory.words.length)
+      : selectedCategory.words.length);
 
   useEffect(() => {
     const socket = io(SERVER_URL, {
@@ -129,6 +135,7 @@ const WordBingo = () => {
       roomId: displayRoomId || roomIdInput,
       categoryName: selectedCategory.name,
       words: selectedCategory.words,
+      callMode,
     });
   };
 
@@ -150,6 +157,21 @@ const WordBingo = () => {
   const restartMatch = () => {
     setResultBanner(null);
     socketRef.current?.emit("restart_word_game", {
+      roomId: displayRoomId || roomIdInput,
+    });
+  };
+
+  const changeCallMode = (mode: WordCallMode) => {
+    if (!amIHost) return;
+    socketRef.current?.emit("set_word_call_mode", {
+      roomId: displayRoomId || roomIdInput,
+      mode,
+    });
+  };
+
+  const callNextWord = () => {
+    if (!amIHost || callMode !== "manual") return;
+    socketRef.current?.emit("word_call_next", {
       roomId: displayRoomId || roomIdInput,
     });
   };
@@ -278,10 +300,34 @@ const WordBingo = () => {
                   <Button variant="outline" onClick={restartMatch} disabled={!amIHost}>Restart</Button>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant={callMode === "auto" ? "default" : "outline"}
+                    onClick={() => changeCallMode("auto")}
+                    disabled={!amIHost}
+                  >
+                    Auto
+                  </Button>
+                  <Button
+                    variant={callMode === "manual" ? "default" : "outline"}
+                    onClick={() => changeCallMode("manual")}
+                    disabled={!amIHost}
+                  >
+                    Manual
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={callNextWord}
+                    disabled={!amIHost || callMode !== "manual" || gameState?.status !== "playing"}
+                  >
+                    <SkipForward className="w-4 h-4 mr-1" /> Next Word
+                  </Button>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   {amIHost
-                    ? "Host can choose the category before the game starts."
-                    : `Host selected category: ${activeCategoryName}`}
+                    ? `Host controls category and call mode (${callMode.toUpperCase()}).`
+                    : `Host selected category: ${activeCategoryName} • Mode: ${callMode.toUpperCase()}`}
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -300,7 +346,7 @@ const WordBingo = () => {
               <WordCaller
                 currentWord={calledWords.length > 0 ? calledWords[calledWords.length - 1] : null}
                 calledWords={calledWords}
-                totalWords={Math.max(calledWords.length, selectedCategory.words.length)}
+                totalWords={Math.max(calledWords.length, effectiveRoundWordCount)}
               />
 
               {card.length > 0 ? (

@@ -1,4 +1,5 @@
 export type WordGameStatus = "waiting" | "playing" | "finished";
+export type WordCallMode = "auto" | "manual";
 
 export interface WordGamePlayer {
   socketId: string;
@@ -14,6 +15,8 @@ export interface WordGameStatePayload {
   winnerSocketId: string | null;
   winnerName: string | null;
   categoryName: string | null;
+  callMode: WordCallMode;
+  roundWordCount: number;
 }
 
 export interface WordCalledPayload {
