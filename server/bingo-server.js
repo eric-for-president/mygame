@@ -1,8 +1,30 @@
 import { createServer } from "node:http";
+import { createReadStream, existsSync, statSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 
-const PORT = Number(process.env.BINGO_PORT || 4001);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DIST_DIR = path.resolve(__dirname, "..", "dist");
+const PORT = Number(process.env.PORT || process.env.BINGO_PORT || 4001);
 const MAX_NUM = 75;
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
 const WIN_LINES = (() => {
   const lines = [];
   for (let r = 0; r < 5; r += 1) {
@@ -158,15 +180,47 @@ function createUniqueCardsForRoom(room, count) {
   return cards;
 }
 
+function sendFile(res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeType = MIME_TYPES[ext] || "application/octet-stream";
+  res.writeHead(200, { "content-type": mimeType });
+  createReadStream(filePath).pipe(res);
+}
+
 const httpServer = createServer((req, res) => {
-  if (req.url === "/health") {
+  const method = req.method || "GET";
+  const rawUrl = req.url || "/";
+  const pathname = rawUrl.split("?")[0];
+
+  if (pathname === "/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
 
+  if (method !== "GET" && method !== "HEAD") {
+    res.writeHead(404);
+    res.end();
+    return;
+  }
+
+  const safePath = path.normalize(pathname).replace(/^([.][.][/\\])+/, "");
+  const requestedPath = safePath === "/" ? "index.html" : safePath.replace(/^[/\\]/, "");
+  const staticPath = path.join(DIST_DIR, requestedPath);
+
+  if (existsSync(staticPath) && statSync(staticPath).isFile()) {
+    sendFile(res, staticPath);
+    return;
+  }
+
+  const indexPath = path.join(DIST_DIR, "index.html");
+  if (existsSync(indexPath)) {
+    sendFile(res, indexPath);
+    return;
+  }
+
   res.writeHead(404);
-  res.end();
+  res.end("Build assets not found. Run npm run build before starting the server.");
 });
 
 const io = new Server(httpServer, {
@@ -376,5 +430,5 @@ io.on("connection", (socket) => {
 
 httpServer.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`Bingo server listening on http://localhost:${PORT}`);
+  console.log(`Bingo server listening on port ${PORT}`);
 });

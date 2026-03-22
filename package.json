@@ -7,7 +7,7 @@
   "dev": "vite",
   "bingo:server": "node server/bingo-server.js",
   "build": "vite build",
-  "start": "serve -s dist",
+  "start": "node server/bingo-server.js",
   "build:dev": "vite build --mode development",
   "lint": "eslint .",
   "preview": "vite preview",

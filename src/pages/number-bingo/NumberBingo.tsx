@@ -8,7 +8,10 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ParticleBackground from "@/components/ParticleBackground";
 import type { BingoCardState, BingoResultPayload, GameStatePayload, NumberCalledPayload } from "./types";
 
-const SERVER_URL = import.meta.env.VITE_BINGO_SERVER_URL || "http://localhost:4001";
+const isBrowser = typeof window !== "undefined";
+const isLocalHost = isBrowser && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const SERVER_URL = import.meta.env.VITE_BINGO_SERVER_URL
+  || (isLocalHost ? "http://localhost:4001" : (isBrowser ? window.location.origin : "http://localhost:4001"));
 const BINGO_HEADERS = ["B", "I", "N", "G", "O"];
 
 const playCallSound = () => {
@@ -50,7 +53,11 @@ const NumberBingo = () => {
   const amIHost = Boolean(gameState?.players.find((p) => p.socketId === socketRef.current?.id)?.isHost);
 
   useEffect(() => {
-    const socket = io(SERVER_URL, { transports: ["websocket"] });
+    const socket = io(SERVER_URL, {
+      transports: ["websocket", "polling"],
+      timeout: 5000,
+      reconnectionAttempts: 5,
+    });
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -60,6 +67,11 @@ const NumberBingo = () => {
 
     socket.on("disconnect", () => {
       setIsConnected(false);
+    });
+
+    socket.on("connect_error", () => {
+      setIsConnected(false);
+      setErrorMsg(`Cannot connect to Bingo server at ${SERVER_URL}. Run: npm run bingo:server`);
     });
 
     socket.on("your_card", (serverCards: BingoCardState[]) => {
@@ -207,6 +219,10 @@ const NumberBingo = () => {
             <Button className="w-full font-display tracking-wider" disabled={!isConnected} onClick={handleJoin}>
               {isConnected ? "Join Game" : "Connecting..."}
             </Button>
+
+            {errorMsg && (
+              <p className="text-sm text-destructive font-medium">{errorMsg}</p>
+            )}
           </div>
         ) : (
           <>
