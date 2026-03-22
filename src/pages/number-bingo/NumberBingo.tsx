@@ -155,7 +155,6 @@ const NumberBingo = () => {
   };
 
   const startGame = () => socketRef.current?.emit("start_game", { roomId });
-  const drawNumber = () => socketRef.current?.emit("draw_number", { roomId });
   const restartGame = () => {
     setResultBanner(null);
     socketRef.current?.emit("restart_game", { roomId });
@@ -272,15 +271,16 @@ const NumberBingo = () => {
                         <Button size="sm" onClick={startGame} disabled={gameState?.status === "playing"}>
                           Start Game
                         </Button>
-                        <Button size="sm" onClick={drawNumber} disabled={gameState?.status === "finished"}>
-                          Draw Number
-                        </Button>
                         <Button variant="outline" size="sm" onClick={restartGame}>
                           Restart
                         </Button>
                       </>
                     )}
                   </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Numbers are auto-drawn by the server every 4 seconds once the game starts.
+                  </p>
 
                   {cards.length > 1 && (
                     <div className="space-y-1">

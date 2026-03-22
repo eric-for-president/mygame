@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST_DIR = path.resolve(__dirname, "..", "dist");
 const PORT = Number(process.env.PORT || process.env.BINGO_PORT || 4001);
+const AUTO_DRAW_MS = Number(process.env.BINGO_AUTO_DRAW_MS || 4000);
 const MAX_NUM = 75;
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -40,7 +41,7 @@ const WIN_LINES = (() => {
 
 /** @typedef {{ cardId: string, card: (number | null)[], marked: Set<number> }} CardState */
 /** @typedef {{ socketId: string, name: string, cards: CardState[] }} PlayerState */
-/** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, PlayerState>, drawnNumbers: number[], remainingNumbers: number[], winnerSocketId: string | null, hostSocketId: string | null }} RoomState */
+/** @typedef {{ id: string, status: "waiting"|"playing"|"finished", players: Map<string, PlayerState>, drawnNumbers: number[], remainingNumbers: number[], winnerSocketId: string | null, hostSocketId: string | null, drawTimer: NodeJS.Timeout | null }} RoomState */
 
 /** @type {Map<string, RoomState>} */
 const rooms = new Map();
@@ -120,6 +121,7 @@ function createRoom(roomId, hostSocketId) {
     remainingNumbers: shuffle(Array.from({ length: MAX_NUM }, (_, i) => i + 1)),
     winnerSocketId: null,
     hostSocketId,
+    drawTimer: null,
   };
 }
 
@@ -178,6 +180,46 @@ function createUniqueCardsForRoom(room, count) {
   }
 
   return cards;
+}
+
+function stopAutoDraw(room) {
+  if (room.drawTimer) {
+    clearInterval(room.drawTimer);
+    room.drawTimer = null;
+  }
+}
+
+function drawNextNumber(io, room) {
+  if (room.status !== "playing") {
+    stopAutoDraw(room);
+    return;
+  }
+
+  if (room.remainingNumbers.length === 0) {
+    room.status = "finished";
+    stopAutoDraw(room);
+    emitRoomState(io, room);
+    return;
+  }
+
+  const nextNumber = room.remainingNumbers.pop();
+  if (typeof nextNumber !== "number") {
+    return;
+  }
+
+  room.drawnNumbers.push(nextNumber);
+  io.to(room.id).emit("number_called", {
+    roomId: room.id,
+    number: nextNumber,
+    drawnNumbers: room.drawnNumbers,
+  });
+
+  emitRoomState(io, room);
+}
+
+function startAutoDraw(io, room) {
+  stopAutoDraw(room);
+  room.drawTimer = setInterval(() => drawNextNumber(io, room), AUTO_DRAW_MS);
 }
 
 function sendFile(res, filePath) {
@@ -270,25 +312,15 @@ io.on("connection", (socket) => {
 
     room.status = "playing";
     emitRoomState(io, room);
+    startAutoDraw(io, room);
   });
 
   socket.on("draw_number", ({ roomId }) => {
     const room = rooms.get(sanitizeRoomId(roomId));
     if (!room || room.hostSocketId !== socket.id) return;
-    if (room.status === "finished" || room.remainingNumbers.length === 0) return;
-
+    if (room.status === "finished") return;
     room.status = "playing";
-    const nextNumber = room.remainingNumbers.pop();
-    if (typeof nextNumber !== "number") return;
-
-    room.drawnNumbers.push(nextNumber);
-    io.to(room.id).emit("number_called", {
-      roomId: room.id,
-      number: nextNumber,
-      drawnNumbers: room.drawnNumbers,
-    });
-
-    emitRoomState(io, room);
+    drawNextNumber(io, room);
   });
 
   socket.on("mark_number", ({ roomId, cardId, index }) => {
@@ -362,6 +394,7 @@ io.on("connection", (socket) => {
 
     room.status = "finished";
     room.winnerSocketId = socket.id;
+    stopAutoDraw(room);
 
     io.to(room.id).emit("bingo_result", {
       valid: true,
@@ -381,6 +414,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(sanitizeRoomId(roomId));
     if (!room || room.hostSocketId !== socket.id) return;
 
+    stopAutoDraw(room);
     room.status = "waiting";
     room.drawnNumbers = [];
     room.remainingNumbers = shuffle(Array.from({ length: MAX_NUM }, (_, i) => i + 1));
@@ -420,6 +454,7 @@ io.on("connection", (socket) => {
       }
 
       if (room.players.size === 0) {
+        stopAutoDraw(room);
         rooms.delete(roomId);
       } else {
         emitRoomState(io, room);
