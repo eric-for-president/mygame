@@ -1,3 +1,5 @@
+import { englishVocabularyWords } from "./englishVocabularyWords";
+
 export interface WordSet {
   name: string;
   icon: string;
@@ -51,6 +53,11 @@ export const wordSets: WordSet[] = [
       "comprehension", "decorator", "generator", "iterator", "self", "init",
       "pip", "venv", "module", "package", "f-string", "format", "split", "join",
     ],
+  },
+  {
+    name: "English Vocabulary (IELTS + SAT)",
+    icon: "📘",
+    words: englishVocabularyWords,
   },
   {
     name: "Random Words",
