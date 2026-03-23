@@ -184,7 +184,7 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
           {vars.map(([name, value]) => (
             <div key={name} className="bg-neon-purple/10 rounded p-2 text-center">
               <p className="text-[10px] text-muted-foreground">{name}</p>
-              <p className="font-mono text-sm text-neon-purple">{String(value)}</p>
+              <p className="font-mono text-sm text-neon-purple">{formatVal(value)}</p>
             </div>
           ))}
         </div>

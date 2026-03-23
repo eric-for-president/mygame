@@ -252,6 +252,270 @@ print(result)
 result2 = gcd(100, 75)
 print(result2)`,
   },
+    {
+        name: 'Even or Odd',
+        language: 'python',
+        description: 'Check parity using modulo',
+        code: `n = 42
+
+if n % 2 == 0:
+        print("Even")
+else:
+        print("Odd")`,
+    },
+    {
+        name: 'Range with Step',
+        language: 'python',
+        description: 'Iterate using custom step values',
+        code: `for i in range(2, 12, 2):
+        print(i)
+
+for j in range(10, 0, -2):
+        print(j)`,
+    },
+    {
+        name: 'Running Product',
+        language: 'python',
+        description: 'Accumulate multiplication in a loop',
+        code: `product = 1
+
+for i in range(1, 6):
+        product = product * i
+        print(product)
+
+print(product)`,
+    },
+    {
+        name: 'List Reverse',
+        language: 'python',
+        description: 'Reverse list content',
+        code: `nums = [1, 2, 3, 4, 5]
+rev = reversed(nums)
+print(rev)
+
+for i in range(len(rev)):
+        print(rev[i])`,
+    },
+    {
+        name: 'Sorted Values',
+        language: 'python',
+        description: 'Sort numbers using built-in sorted',
+        code: `data = [9, 1, 7, 3, 2]
+ordered = sorted(data)
+print(ordered)
+
+print(ordered[0])
+print(ordered[len(ordered) - 1])`,
+    },
+    {
+        name: 'Min Max Finder',
+        language: 'python',
+        description: 'Find smallest and largest value',
+        code: `values = [18, 4, 29, 11, 7]
+smallest = min(values)
+largest = max(values)
+
+print(smallest)
+print(largest)`,
+    },
+    {
+        name: 'Absolute Difference',
+        language: 'python',
+        description: 'Use abs() to measure distance',
+        code: `a = 13
+b = 28
+diff = abs(a - b)
+
+print(diff)`,
+    },
+    {
+        name: 'String Number Conversion',
+        language: 'python',
+        description: 'Convert between strings and numbers',
+        code: `raw = "42"
+n = int(raw)
+f = float(raw)
+s = str(n + 8)
+
+print(n)
+print(f)
+print(s)`,
+    },
+    {
+        name: 'Sum of Squares',
+        language: 'python',
+        description: 'Function that computes squared sum',
+        code: `def sum_squares(n):
+        total = 0
+        for i in range(1, n + 1):
+                total += i * i
+        return total
+
+print(sum_squares(5))`,
+    },
+    {
+        name: 'Prime Check',
+        language: 'python',
+        description: 'Simple prime detection with loop',
+        code: `def is_prime(n):
+        if n < 2:
+                return False
+        flag = True
+        for i in range(2, n):
+                if n % i == 0:
+                        flag = False
+        return flag
+
+print(is_prime(17))
+print(is_prime(18))`,
+    },
+    {
+        name: 'Recursive Sum',
+        language: 'python',
+        description: 'Recursively sum first n numbers',
+        code: `def total(n):
+        if n <= 1:
+                return n
+        return n + total(n - 1)
+
+print(total(6))`,
+    },
+    {
+        name: 'Two Function Composition',
+        language: 'python',
+        description: 'Call functions inside functions',
+        code: `def double(x):
+        return x * 2
+
+def plus_three(x):
+        return x + 3
+
+value = plus_three(double(5))
+print(value)`,
+    },
+    {
+        name: 'Nested Loop Coordinates',
+        language: 'python',
+        description: 'Print grid coordinates',
+        code: `for r in range(1, 4):
+        for c in range(1, 4):
+                print(r)
+                print(c)
+        print("row done")`,
+    },
+    {
+        name: 'Average with Function',
+        language: 'python',
+        description: 'Compute average using helper function',
+        code: `def average(arr):
+        total = sum(arr)
+        return total / len(arr)
+
+vals = [10, 20, 30, 40]
+print(average(vals))`,
+    },
+    {
+        name: 'Class Counter',
+        language: 'python',
+        description: 'OOP: class with state and methods',
+        code: `class Counter:
+        def __init__(self, start):
+                self.value = start
+
+        def inc(self):
+                self.value = self.value + 1
+
+        def show(self):
+                print(self.value)
+
+c = Counter(3)
+c.inc()
+c.show()`,
+    },
+    {
+        name: 'Class Rectangle Area',
+        language: 'python',
+        description: 'OOP: return value from class method',
+        code: `class Rectangle:
+        def __init__(self, w, h):
+                self.w = w
+                self.h = h
+
+        def area(self):
+                return self.w * self.h
+
+r = Rectangle(4, 6)
+a = r.area()
+print(a)`,
+    },
+    {
+        name: 'Class Bank Account',
+        language: 'python',
+        description: 'OOP: update object fields',
+        code: `class Account:
+        def __init__(self, amount):
+                self.balance = amount
+
+        def deposit(self, value):
+                self.balance = self.balance + value
+
+        def withdraw(self, value):
+                self.balance = self.balance - value
+
+acc = Account(100)
+acc.deposit(40)
+acc.withdraw(15)
+print(acc.balance)`,
+    },
+    {
+        name: 'Class Student Grade',
+        language: 'python',
+        description: 'OOP: methods with condition logic',
+        code: `class Student:
+        def __init__(self, marks):
+                self.marks = marks
+
+        def grade(self):
+                if self.marks >= 80:
+                        return "A"
+                if self.marks >= 60:
+                        return "B"
+                return "C"
+
+s = Student(72)
+print(s.grade())`,
+    },
+    {
+        name: 'Class Distance',
+        language: 'python',
+        description: 'OOP: reusable computation method',
+        code: `class Distance:
+        def __init__(self, x1, x2):
+                self.x1 = x1
+                self.x2 = x2
+
+        def diff(self):
+                return abs(self.x1 - self.x2)
+
+d = Distance(25, 7)
+print(d.diff())`,
+    },
+    {
+        name: 'Class Loop Interaction',
+        language: 'python',
+        description: 'OOP used inside loops',
+        code: `class Tracker:
+        def __init__(self):
+                self.count = 0
+
+        def add(self, n):
+                self.count = self.count + n
+
+t = Tracker()
+for i in range(1, 5):
+        t.add(i)
+print(t.count)`,
+    },
 
   // ═══════════════════════════════════
   // C EXAMPLES
@@ -482,6 +746,340 @@ int main() {
         n = n / 10;
     }
     printf("Sum = %d\\n", sum);
+    return 0;
+}`,
+  },
+  {
+    name: 'Even Odd Number',
+    language: 'c',
+    description: 'Parity check using modulo',
+    code: `#include <stdio.h>
+
+int main() {
+    int n = 27;
+    if (n % 2 == 0) {
+        printf("Even\\n");
+    } else {
+        printf("Odd\\n");
+    }
+    return 0;
+}`,
+  },
+  {
+    name: 'Sum 1 to N',
+    language: 'c',
+    description: 'Summation using loop',
+    code: `#include <stdio.h>
+
+int main() {
+    int n = 10;
+    int total = 0;
+    for (int i = 1; i <= n; i++) {
+        total += i;
+    }
+    printf("%d\\n", total);
+    return 0;
+}`,
+  },
+  {
+    name: 'Power Iterative',
+    language: 'c',
+    description: 'Compute power with repeated multiply',
+    code: `#include <stdio.h>
+
+int main() {
+    int base = 3;
+    int exp = 4;
+    int ans = 1;
+    for (int i = 0; i < exp; i++) {
+        ans *= base;
+    }
+    printf("%d\\n", ans);
+    return 0;
+}`,
+  },
+  {
+    name: 'Reverse Number',
+    language: 'c',
+    description: 'Reverse digits in integer',
+    code: `#include <stdio.h>
+
+int main() {
+    int n = 12345;
+    int rev = 0;
+    while (n > 0) {
+        rev = rev * 10 + (n % 10);
+        n = n / 10;
+    }
+    printf("%d\\n", rev);
+    return 0;
+}`,
+  },
+  {
+    name: 'Count Digits',
+    language: 'c',
+    description: 'Count number of digits',
+    code: `#include <stdio.h>
+
+int main() {
+    int n = 98760;
+    int count = 0;
+    while (n > 0) {
+        count++;
+        n = n / 10;
+    }
+    printf("%d\\n", count);
+    return 0;
+}`,
+  },
+  {
+    name: 'Prime Flag Check',
+    language: 'c',
+    description: 'Prime detection without break',
+    code: `#include <stdio.h>
+
+int main() {
+    int n = 19;
+    int prime = 1;
+    for (int i = 2; i < n; i++) {
+        if (n % i == 0) {
+            prime = 0;
+        }
+    }
+    printf("%d\\n", prime);
+    return 0;
+}`,
+  },
+  {
+    name: 'GCD Loop',
+    language: 'c',
+    description: 'Euclid algorithm with while loop',
+    code: `#include <stdio.h>
+
+int main() {
+    int a = 48;
+    int b = 18;
+    while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    printf("%d\\n", a);
+    return 0;
+}`,
+  },
+  {
+    name: 'LCM from GCD',
+    language: 'c',
+    description: 'Use gcd result to compute lcm',
+    code: `#include <stdio.h>
+
+int gcd(int a, int b) {
+    while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+int main() {
+    int x = 12;
+    int y = 18;
+    int g = gcd(x, y);
+    int l = (x * y) / g;
+    printf("%d\\n", l);
+    return 0;
+}`,
+  },
+  {
+    name: 'Temperature Convert',
+    language: 'c',
+    description: 'Celsius to Fahrenheit conversion',
+    code: `#include <stdio.h>
+
+int main() {
+    int c = 30;
+    int f = (c * 9 / 5) + 32;
+    printf("%d\\n", f);
+    return 0;
+}`,
+  },
+  {
+    name: 'Leap Year',
+    language: 'c',
+    description: 'Classic leap-year condition',
+    code: `#include <stdio.h>
+
+int main() {
+    int y = 2024;
+    int leap = 0;
+    if (y % 400 == 0) {
+        leap = 1;
+    } else if (y % 100 == 0) {
+        leap = 0;
+    } else if (y % 4 == 0) {
+        leap = 1;
+    }
+    printf("%d\\n", leap);
+    return 0;
+}`,
+  },
+  {
+    name: 'ASCII Character',
+    language: 'c',
+    description: 'Print ASCII code of character',
+    code: `#include <stdio.h>
+
+int main() {
+    char ch = 'A';
+    int code = ch;
+    printf("%d\\n", code);
+    return 0;
+}`,
+  },
+  {
+    name: 'Simple Interest',
+    language: 'c',
+    description: 'Finance formula with ints',
+    code: `#include <stdio.h>
+
+int main() {
+    int p = 1000;
+    int r = 5;
+    int t = 2;
+    int si = (p * r * t) / 100;
+    printf("%d\\n", si);
+    return 0;
+}`,
+  },
+  {
+    name: 'Function Square',
+    language: 'c',
+    description: 'Function returning square value',
+    code: `#include <stdio.h>
+
+int square(int x) {
+    return x * x;
+}
+
+int main() {
+    int a = 9;
+    int s = square(a);
+    printf("%d\\n", s);
+    return 0;
+}`,
+  },
+  {
+    name: 'Function Cube',
+    language: 'c',
+    description: 'Function returning cube value',
+    code: `#include <stdio.h>
+
+int cube(int x) {
+    return x * x * x;
+}
+
+int main() {
+    printf("%d\\n", cube(4));
+    return 0;
+}`,
+  },
+  {
+    name: 'Recursive Sum',
+    language: 'c',
+    description: 'Recursive natural-number sum',
+    code: `#include <stdio.h>
+
+int sumN(int n) {
+    if (n <= 1) return n;
+    return n + sumN(n - 1);
+}
+
+int main() {
+    printf("%d\\n", sumN(6));
+    return 0;
+}`,
+  },
+  {
+    name: 'Recursive Power',
+    language: 'c',
+    description: 'Power function with recursion',
+    code: `#include <stdio.h>
+
+int power(int b, int e) {
+    if (e == 0) return 1;
+    return b * power(b, e - 1);
+}
+
+int main() {
+    printf("%d\\n", power(2, 10));
+    return 0;
+}`,
+  },
+  {
+    name: 'Multiplication by Addition',
+    language: 'c',
+    description: 'Multiply two numbers with loops',
+    code: `#include <stdio.h>
+
+int main() {
+    int a = 7;
+    int b = 4;
+    int result = 0;
+    for (int i = 0; i < b; i++) {
+        result += a;
+    }
+    printf("%d\\n", result);
+    return 0;
+}`,
+  },
+  {
+    name: 'Pattern Steps',
+    language: 'c',
+    description: 'Nested loops for pattern count',
+    code: `#include <stdio.h>
+
+int main() {
+    int count = 0;
+    for (int i = 1; i <= 4; i++) {
+        for (int j = 1; j <= i; j++) {
+            count++;
+        }
+    }
+    printf("%d\\n", count);
+    return 0;
+}`,
+  },
+  {
+    name: 'Max of Three',
+    language: 'c',
+    description: 'Find maximum of three integers',
+    code: `#include <stdio.h>
+
+int main() {
+    int a = 21;
+    int b = 45;
+    int c = 33;
+    int m = a;
+    if (b > m) m = b;
+    if (c > m) m = c;
+    printf("%d\\n", m);
+    return 0;
+}`,
+  },
+  {
+    name: 'Average of Three',
+    language: 'c',
+    description: 'Compute integer average',
+    code: `#include <stdio.h>
+
+int main() {
+    int a = 10;
+    int b = 20;
+    int c = 30;
+    int avg = (a + b + c) / 3;
+    printf("%d\\n", avg);
     return 0;
 }`,
   },
@@ -787,4 +1385,324 @@ b = temp
 console.log(a)
 console.log(b)`,
   },
+    {
+        name: 'Even or Odd',
+        language: 'javascript',
+        description: 'Check parity with modulo',
+        code: `let n = 31
+
+if (n % 2 === 0) {
+        console.log("Even")
+} else {
+        console.log("Odd")
+}`,
+    },
+    {
+        name: 'Range Sum',
+        language: 'javascript',
+        description: 'Sum values from 1 to n',
+        code: `let n = 10
+let total = 0
+
+for (let i = 1; i <= n; i++) {
+        total += i
+}
+
+console.log(total)`,
+    },
+    {
+        name: 'Countdown While',
+        language: 'javascript',
+        description: 'Decrement in while loop',
+        code: `let n = 5
+
+while (n > 0) {
+        console.log(n)
+        n--
+}
+
+console.log("done")`,
+    },
+    {
+        name: 'Array Reverse',
+        language: 'javascript',
+        description: 'Reverse array in place',
+        code: `let arr = [1, 2, 3, 4]
+arr.reverse()
+console.log(arr)
+
+for (let i = 0; i < arr.length; i++) {
+        console.log(arr[i])
+}`,
+    },
+    {
+        name: 'Array Push Pop',
+        language: 'javascript',
+        description: 'Mutate arrays with push and pop',
+        code: `let data = [10, 20]
+data.push(30)
+data.push(40)
+console.log(data)
+
+data.pop()
+console.log(data)`,
+    },
+    {
+        name: 'Object Literal Access',
+        language: 'javascript',
+        description: 'Read object fields',
+        code: `let user = { name: "Alice", score: 88 }
+console.log(user.name)
+console.log(user.score)
+
+user.score = user.score + 5
+console.log(user.score)`,
+    },
+    {
+        name: 'Factorial Iterative',
+        language: 'javascript',
+        description: 'Factorial without recursion',
+        code: `let n = 5
+let fact = 1
+
+for (let i = 1; i <= n; i++) {
+        fact *= i
+}
+
+console.log(fact)`,
+    },
+    {
+        name: 'Average Function',
+        language: 'javascript',
+        description: 'Function to calculate average',
+        code: `function average(arr) {
+        let s = 0
+        for (let i = 0; i < arr.length; i++) {
+                s += arr[i]
+        }
+        return s / arr.length
+}
+
+console.log(average([5, 10, 15, 20]))`,
+    },
+    {
+        name: 'Prime Check',
+        language: 'javascript',
+        description: 'Detect prime numbers',
+        code: `function isPrime(n) {
+        if (n < 2) return false
+        let ok = true
+        for (let i = 2; i < n; i++) {
+                if (n % i === 0) ok = false
+        }
+        return ok
+}
+
+console.log(isPrime(13))
+console.log(isPrime(15))`,
+    },
+    {
+        name: 'Recursive Sum',
+        language: 'javascript',
+        description: 'Sum first n numbers recursively',
+        code: `function sumN(n) {
+        if (n <= 1) {
+                return n
+        }
+        return n + sumN(n - 1)
+}
+
+console.log(sumN(7))`,
+    },
+    {
+        name: 'Math Parsing',
+        language: 'javascript',
+        description: 'parseInt and Number usage',
+        code: `let a = parseInt("24")
+let b = Number("6")
+let c = a / b
+
+console.log(a)
+console.log(b)
+console.log(c)`,
+    },
+    {
+        name: 'Nested Grid Counter',
+        language: 'javascript',
+        description: 'Nested loop cell counting',
+        code: `let count = 0
+
+for (let r = 1; r <= 3; r++) {
+        for (let c = 1; c <= 4; c++) {
+                count++
+        }
+}
+
+console.log(count)`,
+    },
+    {
+        name: 'Class Person',
+        language: 'javascript',
+        description: 'OOP: class with constructor and method',
+        code: `class Person {
+        constructor(name, age) {
+                this.name = name
+                this.age = age
+        }
+
+        describe() {
+                console.log(this.name)
+                console.log(this.age)
+        }
+}
+
+let p = new Person("Riya", 19)
+p.describe()`,
+    },
+    {
+        name: 'Class Counter',
+        language: 'javascript',
+        description: 'OOP: mutable state in object',
+        code: `class Counter {
+        constructor(start) {
+                this.value = start
+        }
+
+        inc() {
+                this.value = this.value + 1
+        }
+
+        show() {
+                return this.value
+        }
+}
+
+let c = new Counter(10)
+c.inc()
+console.log(c.show())`,
+    },
+    {
+        name: 'Class Rectangle',
+        language: 'javascript',
+        description: 'OOP: method returning computed value',
+        code: `class Rectangle {
+        constructor(w, h) {
+                this.w = w
+                this.h = h
+        }
+
+        area() {
+                return this.w * this.h
+        }
+}
+
+let r = new Rectangle(5, 8)
+console.log(r.area())`,
+    },
+    {
+        name: 'Class Wallet',
+        language: 'javascript',
+        description: 'OOP: deposit and spend methods',
+        code: `class Wallet {
+        constructor(balance) {
+                this.balance = balance
+        }
+
+        add(amount) {
+                this.balance = this.balance + amount
+        }
+
+        spend(amount) {
+                this.balance = this.balance - amount
+        }
+}
+
+let w = new Wallet(100)
+w.add(25)
+w.spend(40)
+console.log(w.balance)`,
+    },
+    {
+        name: 'Class GradeBook',
+        language: 'javascript',
+        description: 'OOP with conditional method',
+        code: `class GradeBook {
+        constructor(score) {
+                this.score = score
+        }
+
+        grade() {
+                if (this.score >= 90) return "A"
+                if (this.score >= 75) return "B"
+                return "C"
+        }
+}
+
+let g = new GradeBook(82)
+console.log(g.grade())`,
+    },
+    {
+        name: 'Class Distance',
+        language: 'javascript',
+        description: 'OOP using Math-like logic',
+        code: `class Distance {
+        constructor(a, b) {
+                this.a = a
+                this.b = b
+        }
+
+        diff() {
+                if (this.a > this.b) {
+                        return this.a - this.b
+                }
+                return this.b - this.a
+        }
+}
+
+let d = new Distance(9, 25)
+console.log(d.diff())`,
+    },
+    {
+        name: 'Class Tracker with Loop',
+        language: 'javascript',
+        description: 'OOP object updated inside loop',
+        code: `class Tracker {
+        constructor() {
+                this.total = 0
+        }
+
+        add(v) {
+                this.total = this.total + v
+        }
+}
+
+let t = new Tracker()
+for (let i = 1; i <= 4; i++) {
+        t.add(i)
+}
+console.log(t.total)`,
+    },
+    {
+        name: 'Class Method Chain Style',
+        language: 'javascript',
+        description: 'Sequential method calls on object',
+        code: `class Box {
+        constructor(value) {
+                this.value = value
+        }
+
+        double() {
+                this.value = this.value * 2
+        }
+
+        minusOne() {
+                this.value = this.value - 1
+        }
+}
+
+let b = new Box(3)
+b.double()
+b.minusOne()
+console.log(b.value)`,
+    },
 ];

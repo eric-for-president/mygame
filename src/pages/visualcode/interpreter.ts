@@ -27,6 +27,7 @@ class PythonInterpreter {
   private callStack: StackFrame[] = [];
   private output: string[] = [];
   private functions: Record<string, { params: string[]; start: number; end: number }> = {};
+  private classes: Record<string, { methods: Record<string, { params: string[]; start: number; end: number }>; start: number; end: number }> = {};
   private stepCount = 0;
   private maxSteps = 500;
   private indentUnit = 4;
@@ -43,8 +44,10 @@ class PythonInterpreter {
     this.callStack = [];
     this.output = [];
     this.functions = {};
+    this.classes = {};
     this.stepCount = 0;
     this.detectIndent();
+    this.findClasses();
     this.findFunctions();
     try {
       this.executeBlock(0, this.lines.length, 0, this.globalVars);
@@ -65,6 +68,7 @@ class PythonInterpreter {
 
   private findFunctions() {
     for (let i = 0; i < this.lines.length; i++) {
+      if (this.lines[i].indent !== 0) continue;
       const m = this.lines[i].text.match(/^def\s+(\w+)\s*\(([^)]*)\)\s*:/);
       if (m) {
         const params = m[2] ? m[2].split(',').map(p => p.trim()).filter(Boolean) : [];
@@ -73,6 +77,35 @@ class PythonInterpreter {
         while (end < this.lines.length && (this.lines[end].isEmpty || this.lines[end].indent >= bodyIndent)) end++;
         this.functions[m[1]] = { params, start: i + 1, end };
       }
+    }
+  }
+
+  private findClasses() {
+    for (let i = 0; i < this.lines.length; i++) {
+      const m = this.lines[i].text.match(/^class\s+(\w+)\s*:?/);
+      if (!m) continue;
+      const bodyIndent = this.lines[i].indent + this.indentUnit;
+      const classEnd = this.blockEnd(i + 1, bodyIndent);
+      const methods: Record<string, { params: string[]; start: number; end: number }> = {};
+
+      let j = i + 1;
+      while (j < classEnd) {
+        const l = this.lines[j];
+        if (!l.isEmpty && l.indent === bodyIndent) {
+          const mm = l.text.match(/^def\s+(\w+)\s*\(([^)]*)\)\s*:/);
+          if (mm) {
+            const params = mm[2] ? mm[2].split(',').map(p => p.trim()).filter(Boolean) : [];
+            const methodIndent = bodyIndent + this.indentUnit;
+            const end = this.blockEnd(j + 1, methodIndent);
+            methods[mm[1]] = { params, start: j + 1, end };
+            j = end;
+            continue;
+          }
+        }
+        j++;
+      }
+
+      this.classes[m[1]] = { methods, start: i + 1, end: classEnd };
     }
   }
 
@@ -107,6 +140,14 @@ class PythonInterpreter {
         this.record(l.lineNum, 'define', `Define function ${name}`, scope);
         const f = this.functions[name];
         i = f ? f.end : i + 1;
+        continue;
+      }
+
+      if (l.text.startsWith('class ')) {
+        const name = l.text.match(/class\s+(\w+)/)?.[1] ?? '?';
+        this.record(l.lineNum, 'define', `Define class ${name}`, scope);
+        const cls = this.classes[name];
+        i = cls ? cls.end : i + 1;
         continue;
       }
 
@@ -152,6 +193,18 @@ class PythonInterpreter {
       return idx + 1;
     }
 
+    // Object attribute assignment
+    const attrAssign = t.match(/^(\w+)\.(\w+)\s*=(?!=)\s*(.+)$/);
+    if (attrAssign) {
+      const obj = scope[attrAssign[1]];
+      const val = this.evaluate(attrAssign[3], scope);
+      if (obj && typeof obj === 'object') {
+        obj[attrAssign[2]] = val;
+        this.record(l.lineNum, 'assignment', `${attrAssign[1]}.${attrAssign[2]} = ${JSON.stringify(val)}`, scope);
+        return idx + 1;
+      }
+    }
+
     // Assignment
     const assign = t.match(/^(\w+)\s*=(?!=)\s*(.+)$/);
     if (assign) {
@@ -167,6 +220,7 @@ class PythonInterpreter {
       const obj = scope[method[1]];
       const args = method[3].trim() ? this.parseComma(method[3]).map(a => this.evaluate(a, scope)) : [];
       if (method[2] === 'append' && Array.isArray(obj)) obj.push(args[0]);
+      else this.callMethod(obj, method[2], args, scope);
       this.record(l.lineNum, 'expression', `${method[1]}.${method[2]}(${args.map(a => JSON.stringify(a)).join(', ')})`, scope);
       return idx + 1;
     }
@@ -273,6 +327,13 @@ class PythonInterpreter {
     // Simple variable
     if (/^\w+$/.test(expr) && expr in scope) return scope[expr];
 
+    // Object property access
+    const propM = expr.match(/^(\w+)\.(\w+)$/);
+    if (propM) {
+      const obj = scope[propM[1]];
+      if (obj && typeof obj === 'object') return obj[propM[2]];
+    }
+
     // List literal
     if (expr.startsWith('[') && expr.endsWith(']')) {
       const inner = expr.slice(1, -1).trim();
@@ -348,6 +409,28 @@ class PythonInterpreter {
     if (name === 'sum') return (args[0] ?? []).reduce((a: number, b: number) => a + b, 0);
     if (name === 'list') return Array.isArray(args[0]) ? [...args[0]] : [];
 
+    // Class constructor call
+    if (name in this.classes) {
+      const instance: Record<string, any> = { __class: name };
+      const cls = this.classes[name];
+      const init = cls.methods.__init__;
+      if (init) {
+        const local: Record<string, any> = { self: instance };
+        const ps = init.params.filter(p => p !== 'self');
+        ps.forEach((p, i) => { local[p] = args[i]; });
+        this.callStack.push({ functionName: `${name}.__init__`, args: { ...local } });
+        this.record(init.start - 1, 'function_call', `Call ${name}.__init__(${args.map(a => JSON.stringify(a)).join(', ')})`, local);
+        try {
+          this.executeBlock(init.start, init.end, this.lines[init.start]?.indent ?? this.indentUnit, local);
+          this.callStack.pop();
+        } catch (e) {
+          if (e instanceof ReturnValue) this.callStack.pop();
+          else { this.callStack.pop(); throw e; }
+        }
+      }
+      return instance;
+    }
+
     // User-defined
     const func = this.functions[name];
     if (!func) return undefined;
@@ -382,6 +465,31 @@ class PythonInterpreter {
     }
     if (cur.trim()) result.push(cur.trim());
     return result;
+  }
+
+  private callMethod(obj: any, methodName: string, args: any[], scope: Record<string, any>): any {
+    if (!obj || typeof obj !== 'object') return undefined;
+    const className = obj.__class;
+    if (!className || !(className in this.classes)) return undefined;
+    const method = this.classes[className].methods[methodName];
+    if (!method) return undefined;
+
+    const local: Record<string, any> = { self: obj };
+    const ps = method.params.filter(p => p !== 'self');
+    ps.forEach((p, i) => { local[p] = args[i]; });
+
+    this.callStack.push({ functionName: `${className}.${methodName}`, args: { ...local } });
+    this.record(method.start - 1, 'function_call', `Call ${className}.${methodName}(${args.map(a => JSON.stringify(a)).join(', ')})`, local);
+
+    try {
+      this.executeBlock(method.start, method.end, this.lines[method.start]?.indent ?? this.indentUnit, local);
+      this.callStack.pop();
+      return undefined;
+    } catch (e) {
+      if (e instanceof ReturnValue) { this.callStack.pop(); return e.value; }
+      this.callStack.pop();
+      throw e;
+    }
   }
 }
 
@@ -806,6 +914,7 @@ class JavaScriptInterpreter {
   private callStack: StackFrame[] = [];
   private output: string[] = [];
   private functions: Record<string, { params: string[]; body: string[]; startLine: number }> = {};
+  private classes: Record<string, { methods: Record<string, { params: string[]; body: string[]; startLine: number }> }> = {};
   private stepCount = 0;
   private maxSteps = 500;
   private originalLines: string[] = [];
@@ -816,10 +925,12 @@ class JavaScriptInterpreter {
     this.callStack = [];
     this.output = [];
     this.functions = {};
+    this.classes = {};
     this.stepCount = 0;
     this.originalLines = code.split('\n');
 
     const lines = this.originalLines.map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+    this.findClasses(lines);
     this.findFunctions(lines);
     try {
       this.executeLines(lines, this.globalVars);
@@ -868,6 +979,19 @@ class JavaScriptInterpreter {
       let line = lines[i].replace(/;$/, '').trim();
       if (!line || line === '{' || line === '}') { i++; continue; }
 
+      // Skip class definitions
+      if (line.match(/^class\s+\w+/)) {
+        let d = line.includes('{') ? 1 : 0;
+        i++;
+        while (i < lines.length) {
+          if (lines[i].includes('{')) d++;
+          if (lines[i].includes('}')) d--;
+          i++;
+          if (d <= 0) break;
+        }
+        continue;
+      }
+
       // Skip function definitions
       if (line.match(/^function\s+\w+\s*\(/)) {
         let d = line.includes('{') ? 1 : 0;
@@ -912,6 +1036,18 @@ class JavaScriptInterpreter {
       scope[assign[1]] = val;
       this.record(idx, 'assignment', `${assign[1]} = ${JSON.stringify(val)}`, scope);
       return idx + 1;
+    }
+
+    // Object property assignment
+    const propAssign = line.match(/^(\w+)\.(\w+)\s*=\s*(.+)$/);
+    if (propAssign && !line.includes('==') && !line.includes('===')) {
+      const obj = scope[propAssign[1]];
+      const val = this.evalJS(propAssign[3], scope);
+      if (obj && typeof obj === 'object') {
+        obj[propAssign[2]] = val;
+        this.record(idx, 'assignment', `${propAssign[1]}.${propAssign[2]} = ${JSON.stringify(val)}`, scope);
+        return idx + 1;
+      }
     }
 
     // Augmented assignment
@@ -963,6 +1099,16 @@ class JavaScriptInterpreter {
       return idx + 1;
     }
 
+    // Object method calls
+    const objMethod = line.match(/^(\w+)\.(\w+)\s*\(([^)]*)\)$/);
+    if (objMethod) {
+      const obj = scope[objMethod[1]];
+      const args = objMethod[3].trim() ? this.parseComma(objMethod[3]).map(a => this.evalJS(a, scope)) : [];
+      this.callClassMethod(obj, objMethod[2], args, scope);
+      this.record(idx, 'expression', `${objMethod[1]}.${objMethod[2]}(${args.map(a => JSON.stringify(a)).join(', ')})`, scope);
+      return idx + 1;
+    }
+
     // If statement
     if (line.startsWith('if') && line.includes('(')) {
       const cond = line.match(/if\s*\((.+)\)/)?.[1] ?? '';
@@ -986,7 +1132,7 @@ class JavaScriptInterpreter {
 
       if (val) {
         this.record(idx, 'condition_true', `${cond} → true`, scope);
-        for (const bl of blockLines) this.executeLine(bl, idx, lines, scope);
+        this.executeJSBlockLines(blockLines, scope);
       } else {
         this.record(idx, 'condition_false', `${cond} → false`, scope);
       }
@@ -1042,7 +1188,7 @@ class JavaScriptInterpreter {
           }
           if (!val) {
             this.record(j, 'condition_true', 'Entering else block', scope);
-            for (const bl of elseLines) this.executeLine(bl, j, lines, scope);
+            this.executeJSBlockLines(elseLines, scope);
           }
           return k;
         }
@@ -1072,7 +1218,7 @@ class JavaScriptInterpreter {
         }
         while (this.evalJS(parts[1], scope) && iter++ < 200 && this.stepCount < this.maxSteps) {
           this.record(idx, 'loop_check', `Condition true (iteration ${iter})`, scope);
-          for (const bl of blockLines) this.executeLine(bl, idx, lines, scope);
+          this.executeJSBlockLines(blockLines, scope);
           this.executeLine(parts[2], idx, lines, scope);
         }
         return j;
@@ -1098,7 +1244,7 @@ class JavaScriptInterpreter {
       let iter = 0;
       while (this.evalJS(cond, scope) && iter++ < 200 && this.stepCount < this.maxSteps) {
         this.record(idx, 'loop_check', `${cond} → true (iteration ${iter})`, scope);
-        for (const bl of blockLines) this.executeLine(bl, idx, lines, scope);
+        this.executeJSBlockLines(blockLines, scope);
       }
       if (iter > 0) this.record(idx, 'condition_false', `${cond} → false, loop ended`, scope);
       return j;
@@ -1115,6 +1261,18 @@ class JavaScriptInterpreter {
     this.evalJS(line, scope);
     this.record(idx, 'expression', `Evaluated: ${line}`, scope);
     return idx + 1;
+  }
+
+  private executeJSBlockLines(blockLines: string[], scope: Record<string, any>) {
+    let bi = 0;
+    while (bi < blockLines.length && this.stepCount < this.maxSteps) {
+      const bodyLine = blockLines[bi].replace(/;$/, '').trim();
+      if (!bodyLine || bodyLine === '{' || bodyLine === '}') {
+        bi++;
+        continue;
+      }
+      bi = this.executeLine(bodyLine, bi, blockLines, scope);
+    }
   }
 
   private evalJS(expr: string, scope: Record<string, any>): any {
@@ -1137,6 +1295,13 @@ class JavaScriptInterpreter {
     if (expr === 'null') return null;
     if (expr === 'undefined') return undefined;
     if (/^\w+$/.test(expr) && expr in scope) return scope[expr];
+
+    // Constructor call: new ClassName(...)
+    const newM = expr.match(/^new\s+(\w+)\s*\((.*)\)$/);
+    if (newM) {
+      const args = newM[2].trim() ? this.parseComma(newM[2]).map(a => this.evalJS(a, scope)) : [];
+      return this.instantiateClass(newM[1], args);
+    }
 
     // Array literal
     if (expr.startsWith('[') && expr.endsWith(']')) {
@@ -1173,6 +1338,14 @@ class JavaScriptInterpreter {
       if (obj !== undefined && obj !== null) return obj[propM[2]];
     }
 
+    // Method call expression: obj.method(...)
+    const methodExpr = expr.match(/^(\w+)\.(\w+)\s*\((.*)\)$/);
+    if (methodExpr) {
+      const obj = scope[methodExpr[1]];
+      const args = methodExpr[3].trim() ? this.parseComma(methodExpr[3]).map(a => this.evalJS(a, scope)) : [];
+      return this.callClassMethod(obj, methodExpr[2], args, scope);
+    }
+
     // Preprocess function calls
     let processed = this.preprocessFuncs(expr, scope);
 
@@ -1207,6 +1380,8 @@ class JavaScriptInterpreter {
     if (name === 'Number') return Number(args[0]);
     if (name === 'isNaN') return isNaN(args[0]);
     if (name === 'Array') return new Array(args[0]).fill(0);
+
+    if (name in this.classes) return this.instantiateClass(name, args);
 
     // User-defined
     const func = this.functions[name];
@@ -1245,6 +1420,110 @@ class JavaScriptInterpreter {
     }
     if (cur.trim()) result.push(cur.trim());
     return result;
+  }
+
+  private findClasses(lines: string[]) {
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^class\s+(\w+)\s*\{?$/);
+      if (!m) continue;
+
+      let depth = lines[i].includes('{') ? 1 : 0;
+      let j = i + 1;
+      if (depth === 0 && j < lines.length && lines[j] === '{') { depth = 1; j++; }
+      const bodyStart = j;
+      while (j < lines.length && depth > 0) {
+        if (lines[j].includes('{')) depth++;
+        if (lines[j].includes('}')) depth--;
+        if (depth > 0) j++;
+        else break;
+      }
+
+      const body = lines.slice(bodyStart, j);
+      const methods: Record<string, { params: string[]; body: string[]; startLine: number }> = {};
+
+      let bi = 0;
+      while (bi < body.length) {
+        const header = body[bi].trim();
+        const mm = header.match(/^(\w+)\s*\(([^)]*)\)\s*\{?$/);
+        if (!mm || ['if', 'for', 'while', 'switch', 'catch'].includes(mm[1])) { bi++; continue; }
+
+        let md = header.includes('{') ? 1 : 0;
+        let k = bi + 1;
+        if (md === 0 && k < body.length && body[k] === '{') { md = 1; k++; }
+        const methodStart = k;
+        while (k < body.length && md > 0) {
+          if (body[k].includes('{')) md++;
+          if (body[k].includes('}')) md--;
+          if (md > 0) k++;
+          else break;
+        }
+
+        methods[mm[1]] = {
+          params: mm[2] ? mm[2].split(',').map(p => p.trim()).filter(Boolean) : [],
+          body: body.slice(methodStart, k),
+          startLine: i,
+        };
+        bi = k + 1;
+      }
+
+      this.classes[m[1]] = { methods };
+    }
+  }
+
+  private instantiateClass(name: string, args: any[]): any {
+    const cls = this.classes[name];
+    if (!cls) return undefined;
+    const instance: Record<string, any> = { __class: name };
+    const ctor = cls.methods['constructor'];
+    if (!ctor) return instance;
+
+    const local: Record<string, any> = { this: instance };
+    ctor.params.forEach((p, i) => { local[p] = args[i]; });
+    this.callStack.push({ functionName: `${name}.constructor`, args: { ...local } });
+    this.record(ctor.startLine, 'function_call', `Call ${name}.constructor(${args.map(a => JSON.stringify(a)).join(', ')})`, local);
+
+    try {
+      let bi = 0;
+      while (bi < ctor.body.length && this.stepCount < this.maxSteps) {
+        const bodyLine = ctor.body[bi].replace(/;$/, '').trim();
+        if (!bodyLine || bodyLine === '{' || bodyLine === '}') { bi++; continue; }
+        bi = this.executeLine(bodyLine, bi, ctor.body, local);
+      }
+      this.callStack.pop();
+      return instance;
+    } catch (e) {
+      if (e instanceof ReturnValue) { this.callStack.pop(); return instance; }
+      this.callStack.pop();
+      throw e;
+    }
+  }
+
+  private callClassMethod(obj: any, methodName: string, args: any[], scope: Record<string, any>): any {
+    if (!obj || typeof obj !== 'object') return undefined;
+    const className = obj.__class;
+    if (!className || !(className in this.classes)) return undefined;
+    const method = this.classes[className].methods[methodName];
+    if (!method) return undefined;
+
+    const local: Record<string, any> = { this: obj };
+    method.params.forEach((p, i) => { local[p] = args[i]; });
+    this.callStack.push({ functionName: `${className}.${methodName}`, args: { ...local } });
+    this.record(method.startLine, 'function_call', `Call ${className}.${methodName}(${args.map(a => JSON.stringify(a)).join(', ')})`, local);
+
+    try {
+      let bi = 0;
+      while (bi < method.body.length && this.stepCount < this.maxSteps) {
+        const bodyLine = method.body[bi].replace(/;$/, '').trim();
+        if (!bodyLine || bodyLine === '{' || bodyLine === '}') { bi++; continue; }
+        bi = this.executeLine(bodyLine, bi, method.body, local);
+      }
+      this.callStack.pop();
+      return undefined;
+    } catch (e) {
+      if (e instanceof ReturnValue) { this.callStack.pop(); return e.value; }
+      this.callStack.pop();
+      throw e;
+    }
   }
 }
 
