@@ -1,5 +1,5 @@
 // Types
-export type Language = 'python' | 'c' | 'javascript';
+export type Language = 'python' | 'c' | 'javascript' | 'java' | 'dotnet';
 
 export interface StackFrame {
   functionName: string;
@@ -205,6 +205,19 @@ class PythonInterpreter {
       }
     }
 
+    // Indexed assignment: arr[i] = value
+    const idxAssign = t.match(/^(\w+)\[(.+)\]\s*=(?!=)\s*(.+)$/);
+    if (idxAssign) {
+      const target = scope[idxAssign[1]];
+      const key = this.evaluate(idxAssign[2], scope);
+      const val = this.evaluate(idxAssign[3], scope);
+      if (target && typeof target === 'object') {
+        target[key] = val;
+        this.record(l.lineNum, 'assignment', `${idxAssign[1]}[${JSON.stringify(key)}] = ${JSON.stringify(val)}`, scope);
+        return idx + 1;
+      }
+    }
+
     // Assignment
     const assign = t.match(/^(\w+)\s*=(?!=)\s*(.+)$/);
     if (assign) {
@@ -342,7 +355,7 @@ class PythonInterpreter {
     }
 
     // List indexing
-    const idxM = expr.match(/^(\w+)\[(.+)\]$/);
+    const idxM = expr.match(/^(\w+)\[([^\]]+)\]$/);
     if (idxM) {
       const arr = scope[idxM[1]];
       const i = this.evaluate(idxM[2], scope);
@@ -391,9 +404,27 @@ class PythonInterpreter {
     // Built-ins
     if (name === 'len') return args[0]?.length ?? 0;
     if (name === 'range') {
-      if (args.length === 1) return Array.from({ length: args[0] }, (_, i) => i);
-      if (args.length === 2) return Array.from({ length: args[1] - args[0] }, (_, i) => args[0] + i);
-      if (args.length === 3) { const r: number[] = []; for (let i = args[0]; i < args[1]; i += args[2]) r.push(i); return r; }
+      if (args.length === 1) {
+        const n = Number(args[0]) || 0;
+        return n > 0 ? Array.from({ length: n }, (_, i) => i) : [];
+      }
+      if (args.length === 2) {
+        const start = Number(args[0]) || 0;
+        const stop = Number(args[1]) || 0;
+        const step = start <= stop ? 1 : -1;
+        const r: number[] = [];
+        for (let i = start; step > 0 ? i < stop : i > stop; i += step) r.push(i);
+        return r;
+      }
+      if (args.length === 3) {
+        const start = Number(args[0]) || 0;
+        const stop = Number(args[1]) || 0;
+        const step = Number(args[2]) || 0;
+        if (step === 0) return [];
+        const r: number[] = [];
+        for (let i = start; step > 0 ? i < stop : i > stop; i += step) r.push(i);
+        return r;
+      }
       return [];
     }
     if (name === 'abs') return Math.abs(args[0]);
@@ -497,6 +528,7 @@ class PythonInterpreter {
 class CInterpreter {
   private steps: ExecutionStep[] = [];
   private vars: Record<string, any> = {};
+  private varTypes: Record<string, string> = {};
   private callStack: StackFrame[] = [];
   private output: string[] = [];
   private functions: Record<string, { params: { type: string; name: string }[]; body: string[] ; startLine: number }> = {};
@@ -507,6 +539,7 @@ class CInterpreter {
   run(code: string): ExecutionStep[] {
     this.steps = [];
     this.vars = {};
+    this.varTypes = {};
     this.callStack = [];
     this.output = [];
     this.functions = {};
@@ -597,18 +630,46 @@ class CInterpreter {
     line = line.replace(/;$/, '').trim();
 
     // Variable declaration/assignment
-    const decl = line.match(/^(?:int|float|double|char|long)\s+(\w+)\s*(?:=\s*(.+))?$/);
+    const decl = line.match(/^(int|float|double|char|long)\s+(\w+)(?:\[(.+)\])?\s*(?:=\s*(.+))?$/);
     if (decl) {
-      const val = decl[2] ? this.evalC(decl[2], scope) : 0;
-      scope[decl[1]] = val;
-      this.record(idx, 'assignment', `${decl[1]} = ${val}`, scope);
+      const type = decl[1];
+      const name = decl[2];
+      const arrSize = decl[3];
+      const initExpr = decl[4];
+      this.varTypes[name] = arrSize ? `${type}[]` : type;
+
+      if (arrSize !== undefined) {
+        const size = Math.max(0, Number(this.evalC(arrSize, scope)) || 0);
+        scope[name] = Array.from({ length: size }, () => 0);
+        this.record(idx, 'assignment', `${name} = ${JSON.stringify(scope[name])}`, scope);
+      } else {
+        const raw = initExpr ? this.evalC(initExpr, scope) : 0;
+        const val = this.castCValue(name, raw);
+        scope[name] = val;
+        this.record(idx, 'assignment', `${name} = ${val}`, scope);
+      }
       return idx + 1;
+    }
+
+    // Indexed assignment: arr[i] = value
+    const idxAssign = line.match(/^(\w+)\[(.+)\]\s*=\s*(.+)$/);
+    if (idxAssign && !line.includes('==')) {
+      const arr = scope[idxAssign[1]];
+      const key = this.evalC(idxAssign[2], scope);
+      const raw = this.evalC(idxAssign[3], scope);
+      const val = this.castCArrayValue(idxAssign[1], raw);
+      if (Array.isArray(arr)) {
+        arr[key] = val;
+        this.record(idx, 'assignment', `${idxAssign[1]}[${key}] = ${val}`, scope);
+        return idx + 1;
+      }
     }
 
     // Assignment
     const assign = line.match(/^(\w+)\s*=\s*(.+)$/);
     if (assign && !line.includes('==')) {
-      const val = this.evalC(assign[2], scope);
+      const raw = this.evalC(assign[2], scope);
+      const val = this.castCValue(assign[1], raw);
       scope[assign[1]] = val;
       this.record(idx, 'assignment', `${assign[1]} = ${val}`, scope);
       return idx + 1;
@@ -631,6 +692,7 @@ class CInterpreter {
       else if (op === '-=') scope[augC[1]] -= v;
       else if (op === '*=') scope[augC[1]] *= v;
       else scope[augC[1]] /= v;
+      scope[augC[1]] = this.castCValue(augC[1], scope[augC[1]]);
       this.record(idx, 'assignment', `${augC[1]} ${op} ${v} → ${scope[augC[1]]}`, scope);
       return idx + 1;
     }
@@ -830,6 +892,14 @@ class CInterpreter {
     if (expr.startsWith("'") && expr.endsWith("'")) return expr.charCodeAt(1);
     if (/^\w+$/.test(expr) && expr in scope) return scope[expr];
 
+    // Array indexing
+    const idxM = expr.match(/^(\w+)\[([^\]]+)\]$/);
+    if (idxM) {
+      const arr = scope[idxM[1]];
+      const key = this.evalC(idxM[2], scope);
+      if (Array.isArray(arr)) return arr[key] ?? 0;
+    }
+
     // Direct function call: factorial(5)
     const fm = expr.match(/^(\w+)\s*\(([^()]*)\)$/);
     if (fm && fm[1] in this.functions) {
@@ -845,8 +915,22 @@ class CInterpreter {
     const keys = Object.keys(scope);
     const vals = Object.values(scope);
     try {
-      return new Function(...keys, `"use strict"; return (${expr})`)(...vals);
+      const value = new Function(...keys, `"use strict"; return (${expr})`)(...vals);
+      if (typeof value === 'number' && expr.includes('/') && !expr.includes('.')) return Math.trunc(value);
+      return value;
     } catch { return 0; }
+  }
+
+  private castCValue(name: string, value: any): any {
+    const t = this.varTypes[name] ?? '';
+    if (t === 'int' || t === 'long' || t === 'char') return Math.trunc(Number(value) || 0);
+    return value;
+  }
+
+  private castCArrayValue(name: string, value: any): any {
+    const t = this.varTypes[name] ?? '';
+    if (t.startsWith('int') || t.startsWith('long') || t.startsWith('char')) return Math.trunc(Number(value) || 0);
+    return value;
   }
 
   private preprocessCFuncs(expr: string, scope: Record<string, any>): string {
@@ -1036,6 +1120,19 @@ class JavaScriptInterpreter {
       scope[assign[1]] = val;
       this.record(idx, 'assignment', `${assign[1]} = ${JSON.stringify(val)}`, scope);
       return idx + 1;
+    }
+
+    // Indexed assignment: arr[i] = value
+    const idxAssign = line.match(/^(\w+)\[(.+)\]\s*=\s*(.+)$/);
+    if (idxAssign && !line.includes('==') && !line.includes('===')) {
+      const arr = scope[idxAssign[1]];
+      const key = this.evalJS(idxAssign[2], scope);
+      const val = this.evalJS(idxAssign[3], scope);
+      if (arr && typeof arr === 'object') {
+        arr[key] = val;
+        this.record(idx, 'assignment', `${idxAssign[1]}[${JSON.stringify(key)}] = ${JSON.stringify(val)}`, scope);
+        return idx + 1;
+      }
     }
 
     // Object property assignment
@@ -1324,7 +1421,7 @@ class JavaScriptInterpreter {
     }
 
     // Array/object indexing
-    const idxM = expr.match(/^(\w+)\[(.+)\]$/);
+    const idxM = expr.match(/^(\w+)\[([^\]]+)\]$/);
     if (idxM) {
       const obj = scope[idxM[1]];
       const key = this.evalJS(idxM[2], scope);
@@ -1527,9 +1624,143 @@ class JavaScriptInterpreter {
   }
 }
 
+function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
+  const lines = code.split('\n');
+  const classStack: string[] = [];
+  let inClass = false;
+  const out: string[] = [];
+
+  const removeModifiers = (s: string) =>
+    s
+      .replace(/\bpublic\b/g, '')
+      .replace(/\bprivate\b/g, '')
+      .replace(/\bprotected\b/g, '')
+      .replace(/\binternal\b/g, '')
+      .replace(/\bstatic\b/g, '')
+      .replace(/\bfinal\b/g, '')
+      .replace(/\bvirtual\b/g, '')
+      .replace(/\boverride\b/g, '')
+      .replace(/\breadonly\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (!line) {
+      out.push('');
+      continue;
+    }
+
+    if (/^(import|package|using\s+[\w\.\*]+;?)/.test(line)) {
+      out.push('');
+      continue;
+    }
+
+    line = line
+      .replace(/System\.out\.println\s*\(/g, 'console.log(')
+      .replace(/Console\.WriteLine\s*\(/g, 'console.log(')
+      .replace(/Console\.Write\s*\(/g, 'console.log(')
+      .replace(/\bTrue\b/g, 'true')
+      .replace(/\bFalse\b/g, 'false')
+      .replace(/\bnull\b/g, 'null');
+
+    const classMatch = line.match(/^\s*(?:public\s+)?class\s+(\w+)\s*\{?\s*$/);
+    if (classMatch) {
+      const className = classMatch[1];
+      classStack.push(className);
+      inClass = true;
+      out.push(`class ${className} {`);
+      continue;
+    }
+
+    if (line === '}') {
+      if (inClass && classStack.length > 0) classStack.pop();
+      inClass = classStack.length > 0;
+      out.push('}');
+      continue;
+    }
+
+    // Convert constructor signatures: ClassName(args) { -> constructor(args) {
+    if (inClass && classStack.length > 0) {
+      const currentClass = classStack[classStack.length - 1];
+      const ctorRegex = new RegExp(`^${currentClass}\\s*\\(([^)]*)\\)\\s*\\{?\\s*$`);
+      const ctorMatch = removeModifiers(line).match(ctorRegex);
+      if (ctorMatch) {
+        const params = ctorMatch[1]
+          .split(',')
+          .map(p => p.trim())
+          .filter(Boolean)
+          .map(p => p.split(/\s+/).pop() ?? p)
+          .join(', ');
+        out.push(`constructor(${params}) {`);
+        continue;
+      }
+    }
+
+    // Convert method signatures in class: int add(int a, int b) { -> add(a, b) {
+    if (inClass) {
+      const m = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
+      if (m) {
+        const methodName = m[1];
+        const params = m[2]
+          .split(',')
+          .map(p => p.trim())
+          .filter(Boolean)
+          .map(p => p.split(/\s+/).pop() ?? p)
+          .join(', ');
+        out.push(`${methodName}(${params}) {`);
+        continue;
+      }
+    }
+
+    // Convert top-level typed function signatures to JS function declarations
+    const fn = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
+    if (fn && !inClass) {
+      const fnName = fn[1];
+      const params = fn[2]
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean)
+        .map(p => p.split(/\s+/).pop() ?? p)
+        .join(', ');
+      out.push(`function ${fnName}(${params}) {`);
+      continue;
+    }
+
+    // Convert typed declarations: int x = 1; -> let x = 1;
+    line = line
+      .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal|var)\s+(\w+)\s*=/g, 'let $1 =')
+      .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal|var)\s+(\w+)\b/g, 'let $1')
+      .replace(/new\s+\w+\s*\[(\d+)\]/g, 'new Array($1).fill(0)')
+      .replace(/new\s+\w+\[\]\s*\{([^}]*)\}/g, '[$1]');
+
+    out.push(line);
+  }
+
+  // Keep language param to allow future language-specific tweaks.
+  void lang;
+  return out.join('\n');
+}
+
+class JavaInterpreter {
+  run(code: string): ExecutionStep[] {
+    const normalized = normalizeJavaLikeCode(code, 'java');
+    return new JavaScriptInterpreter().run(normalized);
+  }
+}
+
+class DotNetInterpreter {
+  run(code: string): ExecutionStep[] {
+    const normalized = normalizeJavaLikeCode(code, 'dotnet');
+    return new JavaScriptInterpreter().run(normalized);
+  }
+}
+
 // ─── Public API ───
 export function traceCode(code: string, language: Language): ExecutionStep[] {
   if (language === 'python') return new PythonInterpreter().run(code);
   if (language === 'javascript') return new JavaScriptInterpreter().run(code);
+  if (language === 'java') return new JavaInterpreter().run(code);
+  if (language === 'dotnet') return new DotNetInterpreter().run(code);
   return new CInterpreter().run(code);
 }

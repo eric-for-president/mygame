@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Play, SkipForward, Pause, RotateCcw, BookOpen, ChevronRight, Code2, Save, Trash2, FolderOpen } from "lucide-react";
@@ -51,8 +51,47 @@ const formatVal = (v: any): string => {
   return String(v);
 };
 
-const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMode: boolean }) => {
+const Canvas = ({
+  step,
+  learningMode,
+  steps,
+  currentStep,
+}: {
+  step: ExecutionStep | null;
+  learningMode: boolean;
+  steps: ExecutionStep[];
+  currentStep: number;
+}) => {
   const [grid, setGrid] = useState<number[][]>([]);
+
+  const executedSteps = useMemo(
+    () => (currentStep >= 0 ? steps.slice(0, currentStep + 1) : []),
+    [steps, currentStep]
+  );
+
+  const variableHistory = useMemo(() => {
+    const history: Record<string, { stepIndex: number; line: number; value: any }[]> = {};
+    let prevVars: Record<string, any> = {};
+
+    for (let i = 0; i < executedSteps.length; i++) {
+      const vars = executedSteps[i].variables ?? {};
+      for (const [name, value] of Object.entries(vars)) {
+        const prev = prevVars[name];
+        const changed = JSON.stringify(prev) !== JSON.stringify(value);
+        if (!(name in prevVars) || changed) {
+          if (!history[name]) history[name] = [];
+          history[name].push({
+            stepIndex: i,
+            line: executedSteps[i].line,
+            value,
+          });
+        }
+      }
+      prevVars = vars;
+    }
+
+    return history;
+  }, [executedSteps]);
 
   // Detect loop variables
   const i = step?.variables?.i;
@@ -175,6 +214,36 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
         <p className="font-mono text-sm text-foreground">{step.explanation}</p>
       </motion.div>
 
+      {/* Statement history */}
+      <div className="glass-panel p-4">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3">
+          📜 Statement History
+        </h3>
+        <div className="max-h-44 overflow-auto space-y-1.5 pr-1">
+          {executedSteps.length === 0 ? (
+            <p className="text-[10px] text-muted-foreground/60">No statements executed yet</p>
+          ) : (
+            executedSteps.map((s, idx) => {
+              const isCurrent = idx === currentStep;
+              return (
+                <div
+                  key={`${idx}-${s.line}-${s.type}`}
+                  className={`rounded px-2 py-1 border text-[10px] font-mono ${
+                    isCurrent
+                      ? 'bg-neon-cyan/15 border-neon-cyan/40 text-neon-cyan'
+                      : 'bg-muted/20 border-white/10 text-foreground/80'
+                  }`}
+                >
+                  <span className="mr-2 text-muted-foreground">#{idx + 1}</span>
+                  <span className="mr-2">L{s.line + 1}</span>
+                  <span>{s.explanation}</span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       {/* Variables */}
       <div className="glass-panel p-4">
         <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3">
@@ -187,6 +256,31 @@ const Canvas = ({ step, learningMode }: { step: ExecutionStep | null; learningMo
               <p className="font-mono text-sm text-neon-purple">{formatVal(value)}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Variable value history */}
+      <div className="glass-panel p-4">
+        <h3 className="text-xs font-bold uppercase text-muted-foreground/70 mb-3">
+          🧭 Variable Value History
+        </h3>
+        <div className="max-h-48 overflow-auto space-y-2 pr-1">
+          {Object.keys(variableHistory).length === 0 ? (
+            <p className="text-[10px] text-muted-foreground/60">No variable changes tracked yet</p>
+          ) : (
+            Object.entries(variableHistory).map(([name, records]) => (
+              <div key={name} className="rounded border border-white/10 bg-muted/15 p-2">
+                <p className="text-[11px] font-bold text-neon-purple mb-1">{name}</p>
+                <div className="space-y-1">
+                  {records.slice(-6).map((r, i) => (
+                    <p key={`${name}-${i}-${r.stepIndex}`} className="text-[10px] font-mono text-foreground/85">
+                      S{r.stepIndex + 1} | L{r.line + 1} | {formatVal(r.value)}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -338,6 +432,8 @@ const VisualCodeLab = () => {
           <option value="python">Python</option>
           <option value="c">C</option>
           <option value="javascript">JavaScript</option>
+          <option value="java">Java</option>
+          <option value="dotnet">.NET (C#)</option>
         </select>
 
         <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
@@ -387,7 +483,7 @@ const VisualCodeLab = () => {
       <div className="relative z-10 flex-1 flex overflow-hidden">
         {/* Canvas (primary) */}
         <div className="flex-1 overflow-hidden">
-          <Canvas step={stepData} learningMode={learningMode} />
+          <Canvas step={stepData} learningMode={learningMode} steps={steps} currentStep={currentStep} />
         </div>
 
         {/* Right Sidebar */}

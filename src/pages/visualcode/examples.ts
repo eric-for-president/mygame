@@ -1705,4 +1705,870 @@ b.double()
 b.minusOne()
 console.log(b.value)`,
     },
+
+    // ═══════════════════════════════════
+    // JAVA EXAMPLES
+    // ═══════════════════════════════════
+    {
+        name: 'Java Variables',
+        language: 'java',
+        description: 'Primitive variables in Java style',
+        code: `int a = 10;
+int b = 20;
+int sum = a + b;
+System.out.println(sum);`,
+    },
+    {
+        name: 'Java If Else',
+        language: 'java',
+        description: 'Conditional branching',
+        code: `int score = 78;
+if (score >= 80) {
+        System.out.println("A");
+} else {
+        System.out.println("B");
+}`,
+    },
+    {
+        name: 'Java Nested If',
+        language: 'java',
+        description: 'Nested condition checks',
+        code: `int n = 15;
+if (n > 0) {
+        if (n > 10) {
+                System.out.println("big");
+        } else {
+                System.out.println("small");
+        }
+}`,
+    },
+    {
+        name: 'Java For Loop',
+        language: 'java',
+        description: 'Sum with for loop',
+        code: `int total = 0;
+for (int i = 1; i <= 5; i++) {
+        total = total + i;
+}
+System.out.println(total);`,
+    },
+    {
+        name: 'Java While Loop',
+        language: 'java',
+        description: 'Countdown loop',
+        code: `int n = 5;
+while (n > 0) {
+        System.out.println(n);
+        n = n - 1;
+}`,
+    },
+    {
+        name: 'Java Nested Loops',
+        language: 'java',
+        description: 'Multiplication table',
+        code: `for (int i = 1; i <= 3; i++) {
+        for (int j = 1; j <= 3; j++) {
+                System.out.println(i * j);
+        }
+}`,
+    },
+    {
+        name: 'Java Array Basics',
+        language: 'java',
+        description: 'Array declaration and indexing',
+        code: `int[] arr = [4, 8, 1, 6];
+System.out.println(arr[0]);
+arr[2] = 10;
+System.out.println(arr[2]);`,
+    },
+    {
+        name: 'Java Array Sum',
+        language: 'java',
+        description: 'Compute array sum',
+        code: `int[] arr = [2, 4, 6, 8];
+int s = 0;
+for (int i = 0; i < 4; i++) {
+        s = s + arr[i];
+}
+System.out.println(s);`,
+    },
+    {
+        name: 'Java Function Add',
+        language: 'java',
+        description: 'Top-level function style',
+        code: `int add(int a, int b) {
+        return a + b;
+}
+int x = add(7, 5);
+System.out.println(x);`,
+    },
+    {
+        name: 'Java Recursive Factorial',
+        language: 'java',
+        description: 'Recursion example',
+        code: `int fact(int n) {
+        if (n <= 1) {
+                return 1;
+        }
+        return n * fact(n - 1);
+}
+System.out.println(fact(5));`,
+    },
+    {
+        name: 'Java Fibonacci',
+        language: 'java',
+        description: 'Recursive fibonacci',
+        code: `int fib(int n) {
+        if (n <= 1) return n;
+        return fib(n - 1) + fib(n - 2);
+}
+System.out.println(fib(7));`,
+    },
+    {
+        name: 'Java Bubble Sort',
+        language: 'java',
+        description: 'Sorting with swaps',
+        code: `int[] arr = [5, 3, 8, 1, 2];
+for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 4; j++) {
+                if (arr[j] > arr[j + 1]) {
+                        int t = arr[j];
+                        arr[j] = arr[j + 1];
+                        arr[j + 1] = t;
+                }
+        }
+}
+System.out.println(arr);`,
+    },
+    {
+        name: 'Java Linear Search',
+        language: 'java',
+        description: 'Find index in array',
+        code: `int[] arr = [9, 4, 7, 1, 6];
+int pos = -1;
+for (int i = 0; i < 5; i++) {
+        if (arr[i] == 7) {
+                pos = i;
+        }
+}
+System.out.println(pos);`,
+    },
+    {
+        name: 'Java Max in Array',
+        language: 'java',
+        description: 'Track maximum value',
+        code: `int[] arr = [15, 3, 28, 11, 7];
+int m = arr[0];
+for (int i = 1; i < 5; i++) {
+        if (arr[i] > m) m = arr[i];
+}
+System.out.println(m);`,
+    },
+    {
+        name: 'Java GCD Loop',
+        language: 'java',
+        description: 'Euclid algorithm',
+        code: `int a = 48;
+int b = 18;
+while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+}
+System.out.println(a);`,
+    },
+    {
+        name: 'Java Even Odd',
+        language: 'java',
+        description: 'Parity check',
+        code: `int n = 37;
+if (n % 2 == 0) {
+        System.out.println("even");
+} else {
+        System.out.println("odd");
+}`,
+    },
+    {
+        name: 'Java Prime Flag',
+        language: 'java',
+        description: 'Prime detection',
+        code: `int n = 19;
+int ok = 1;
+for (int i = 2; i < n; i++) {
+        if (n % i == 0) {
+                ok = 0;
+        }
+}
+System.out.println(ok);`,
+    },
+    {
+        name: 'Java Reverse Number',
+        language: 'java',
+        description: 'Digit reverse logic',
+        code: `int n = 1234;
+int rev = 0;
+while (n > 0) {
+        rev = rev * 10 + (n % 10);
+        n = n / 10;
+}
+System.out.println(rev);`,
+    },
+    {
+        name: 'Java Count Digits',
+        language: 'java',
+        description: 'Count number digits',
+        code: `int n = 98765;
+int c = 0;
+while (n > 0) {
+        c = c + 1;
+        n = n / 10;
+}
+System.out.println(c);`,
+    },
+    {
+        name: 'Java Sum of Digits',
+        language: 'java',
+        description: 'Accumulate digits',
+        code: `int n = 1234;
+int s = 0;
+while (n > 0) {
+        s = s + (n % 10);
+        n = n / 10;
+}
+System.out.println(s);`,
+    },
+    {
+        name: 'Java Class Counter',
+        language: 'java',
+        description: 'OOP: mutable class state',
+        code: `class Counter {
+        int value;
+        Counter(int start) {
+                this.value = start;
+        }
+        void inc() {
+                this.value = this.value + 1;
+        }
+}
+Counter c = new Counter(3);
+c.inc();
+System.out.println(c.value);`,
+    },
+    {
+        name: 'Java Class Rectangle',
+        language: 'java',
+        description: 'OOP: area method',
+        code: `class Rectangle {
+        int w;
+        int h;
+        Rectangle(int w, int h) {
+                this.w = w;
+                this.h = h;
+        }
+        int area() {
+                return this.w * this.h;
+        }
+}
+Rectangle r = new Rectangle(4, 6);
+System.out.println(r.area());`,
+    },
+    {
+        name: 'Java Class Account',
+        language: 'java',
+        description: 'OOP: deposit and withdraw',
+        code: `class Account {
+        int balance;
+        Account(int b) {
+                this.balance = b;
+        }
+        void deposit(int x) {
+                this.balance = this.balance + x;
+        }
+        void withdraw(int x) {
+                this.balance = this.balance - x;
+        }
+}
+Account a = new Account(100);
+a.deposit(20);
+a.withdraw(15);
+System.out.println(a.balance);`,
+    },
+    {
+        name: 'Java Class Student',
+        language: 'java',
+        description: 'OOP: grade computation',
+        code: `class Student {
+        int marks;
+        Student(int m) {
+                this.marks = m;
+        }
+        int grade() {
+                if (this.marks >= 80) return 1;
+                if (this.marks >= 60) return 2;
+                return 3;
+        }
+}
+Student s = new Student(72);
+System.out.println(s.grade());`,
+    },
+    {
+        name: 'Java Class Distance',
+        language: 'java',
+        description: 'OOP: absolute difference',
+        code: `class Distance {
+        int a;
+        int b;
+        Distance(int a, int b) {
+                this.a = a;
+                this.b = b;
+        }
+        int diff() {
+                if (this.a > this.b) return this.a - this.b;
+                return this.b - this.a;
+        }
+}
+Distance d = new Distance(5, 19);
+System.out.println(d.diff());`,
+    },
+    {
+        name: 'Java Class Tracker Loop',
+        language: 'java',
+        description: 'OOP in loops',
+        code: `class Tracker {
+        int total;
+        Tracker() {
+                this.total = 0;
+        }
+        void add(int v) {
+                this.total = this.total + v;
+        }
+}
+Tracker t = new Tracker();
+for (int i = 1; i <= 4; i++) {
+        t.add(i);
+}
+System.out.println(t.total);`,
+    },
+    {
+        name: 'Java Class Box Chain',
+        language: 'java',
+        description: 'OOP: multiple method calls',
+        code: `class Box {
+        int value;
+        Box(int v) {
+                this.value = v;
+        }
+        void doubleIt() {
+                this.value = this.value * 2;
+        }
+        void minusOne() {
+                this.value = this.value - 1;
+        }
+}
+Box b = new Box(3);
+b.doubleIt();
+b.minusOne();
+System.out.println(b.value);`,
+    },
+    {
+        name: 'Java Class Two Objects',
+        language: 'java',
+        description: 'OOP: independent instances',
+        code: `class Lamp {
+        int state;
+        Lamp(int s) {
+                this.state = s;
+        }
+        void toggle() {
+                this.state = 1 - this.state;
+        }
+}
+Lamp a = new Lamp(0);
+Lamp b = new Lamp(1);
+a.toggle();
+System.out.println(a.state);
+System.out.println(b.state);`,
+    },
+    {
+        name: 'Java Class Return Method',
+        language: 'java',
+        description: 'OOP: return from method',
+        code: `class MathBox {
+        int x;
+        MathBox(int x) {
+                this.x = x;
+        }
+        int square() {
+                return this.x * this.x;
+        }
+}
+MathBox m = new MathBox(9);
+System.out.println(m.square());`,
+    },
+    {
+        name: 'Java Class Array Worker',
+        language: 'java',
+        description: 'OOP worker with constructor and method',
+        code: `class Worker {
+        int value;
+        Worker(int v) {
+            this.value = v;
+        }
+        int apply(int x) {
+            return x + this.value;
+        }
+}
+    Worker w = new Worker(5);
+    System.out.println(w.apply(7));`,
+    },
+
+    // ═══════════════════════════════════
+    // .NET (C#) EXAMPLES
+    // ═══════════════════════════════════
+    {
+        name: '.NET Variables',
+        language: 'dotnet',
+        description: 'Basic typed variables',
+        code: `int a = 12;
+int b = 7;
+int c = a + b;
+Console.WriteLine(c);`,
+    },
+    {
+        name: '.NET If Else',
+        language: 'dotnet',
+        description: 'Conditional logic',
+        code: `int x = 20;
+if (x > 10) {
+        Console.WriteLine("high");
+} else {
+        Console.WriteLine("low");
+}`,
+    },
+    {
+        name: '.NET For Loop',
+        language: 'dotnet',
+        description: 'Accumulate totals',
+        code: `int total = 0;
+for (int i = 1; i <= 5; i++) {
+        total += i;
+}
+Console.WriteLine(total);`,
+    },
+    {
+        name: '.NET While Loop',
+        language: 'dotnet',
+        description: 'Loop with decrement',
+        code: `int n = 4;
+while (n > 0) {
+        Console.WriteLine(n);
+        n--;
+}`,
+    },
+    {
+        name: '.NET Nested Loops',
+        language: 'dotnet',
+        description: 'Nested iteration',
+        code: `for (int i = 1; i <= 3; i++) {
+        for (int j = 1; j <= 3; j++) {
+                Console.WriteLine(i * j);
+        }
+}`,
+    },
+    {
+        name: '.NET Array Basics',
+        language: 'dotnet',
+        description: 'Array read and write',
+        code: `int[] arr = [5, 6, 7, 8];
+Console.WriteLine(arr[1]);
+arr[1] = 12;
+Console.WriteLine(arr[1]);`,
+    },
+    {
+        name: '.NET Array Sum',
+        language: 'dotnet',
+        description: 'Sum array values',
+        code: `int[] arr = [1, 3, 5, 7];
+int s = 0;
+for (int i = 0; i < 4; i++) {
+        s = s + arr[i];
+}
+Console.WriteLine(s);`,
+    },
+    {
+        name: '.NET Function Multiply',
+        language: 'dotnet',
+        description: 'Function return value',
+        code: `int multiply(int a, int b) {
+        return a * b;
+}
+int p = multiply(4, 6);
+Console.WriteLine(p);`,
+    },
+    {
+        name: '.NET Factorial Recursion',
+        language: 'dotnet',
+        description: 'Recursive factorial',
+        code: `int fact(int n) {
+        if (n <= 1) return 1;
+        return n * fact(n - 1);
+}
+Console.WriteLine(fact(6));`,
+    },
+    {
+        name: '.NET Fibonacci',
+        language: 'dotnet',
+        description: 'Recursive fibonacci',
+        code: `int fib(int n) {
+        if (n <= 1) return n;
+        return fib(n - 1) + fib(n - 2);
+}
+Console.WriteLine(fib(8));`,
+    },
+    {
+        name: '.NET Bubble Sort',
+        language: 'dotnet',
+        description: 'Sort integer array',
+        code: `int[] arr = [9, 2, 6, 1, 3];
+for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 4; j++) {
+                if (arr[j] > arr[j + 1]) {
+                        int t = arr[j];
+                        arr[j] = arr[j + 1];
+                        arr[j + 1] = t;
+                }
+        }
+}
+Console.WriteLine(arr);`,
+    },
+    {
+        name: '.NET Linear Search',
+        language: 'dotnet',
+        description: 'Locate target index',
+        code: `int[] arr = [11, 22, 33, 44, 55];
+int pos = -1;
+for (int i = 0; i < 5; i++) {
+        if (arr[i] == 44) pos = i;
+}
+Console.WriteLine(pos);`,
+    },
+    {
+        name: '.NET Max Value',
+        language: 'dotnet',
+        description: 'Max element in list',
+        code: `int[] arr = [4, 19, 2, 30, 11];
+int m = arr[0];
+for (int i = 1; i < 5; i++) {
+        if (arr[i] > m) m = arr[i];
+}
+Console.WriteLine(m);`,
+    },
+    {
+        name: '.NET GCD While',
+        language: 'dotnet',
+        description: 'Euclid gcd loop',
+        code: `int a = 84;
+int b = 30;
+while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+}
+Console.WriteLine(a);`,
+    },
+    {
+        name: '.NET Reverse Number',
+        language: 'dotnet',
+        description: 'Reverse integer digits',
+        code: `int n = 2468;
+int rev = 0;
+while (n > 0) {
+        rev = rev * 10 + (n % 10);
+        n = n / 10;
+}
+Console.WriteLine(rev);`,
+    },
+    {
+        name: '.NET Count Digits',
+        language: 'dotnet',
+        description: 'Count digits in number',
+        code: `int n = 123456;
+int c = 0;
+while (n > 0) {
+        c++;
+        n = n / 10;
+}
+Console.WriteLine(c);`,
+    },
+    {
+        name: '.NET Sum Digits',
+        language: 'dotnet',
+        description: 'Digit sum loop',
+        code: `int n = 5678;
+int s = 0;
+while (n > 0) {
+        s = s + (n % 10);
+        n = n / 10;
+}
+Console.WriteLine(s);`,
+    },
+    {
+        name: '.NET Prime Check',
+        language: 'dotnet',
+        description: 'Simple prime test',
+        code: `int n = 17;
+int ok = 1;
+for (int i = 2; i < n; i++) {
+        if (n % i == 0) ok = 0;
+}
+Console.WriteLine(ok);`,
+    },
+    {
+        name: '.NET Power Iterative',
+        language: 'dotnet',
+        description: 'Compute power in loop',
+        code: `int b = 2;
+int e = 8;
+int ans = 1;
+for (int i = 0; i < e; i++) {
+        ans = ans * b;
+}
+Console.WriteLine(ans);`,
+    },
+    {
+        name: '.NET Class Counter',
+        language: 'dotnet',
+        description: 'OOP: mutable state',
+        code: `class Counter {
+        int value;
+        Counter(int s) {
+                this.value = s;
+        }
+        void Inc() {
+                this.value = this.value + 1;
+        }
+}
+Counter c = new Counter(10);
+c.Inc();
+Console.WriteLine(c.value);`,
+    },
+    {
+        name: '.NET Class Rectangle',
+        language: 'dotnet',
+        description: 'OOP: area method',
+        code: `class Rectangle {
+        int w;
+        int h;
+        Rectangle(int w, int h) {
+                this.w = w;
+                this.h = h;
+        }
+        int Area() {
+                return this.w * this.h;
+        }
+}
+Rectangle r = new Rectangle(5, 9);
+Console.WriteLine(r.Area());`,
+    },
+    {
+        name: '.NET Class Wallet',
+        language: 'dotnet',
+        description: 'OOP: add/spend methods',
+        code: `class Wallet {
+        int balance;
+        Wallet(int b) {
+                this.balance = b;
+        }
+        void Add(int x) {
+                this.balance = this.balance + x;
+        }
+        void Spend(int x) {
+                this.balance = this.balance - x;
+        }
+}
+Wallet w = new Wallet(200);
+w.Add(30);
+w.Spend(50);
+Console.WriteLine(w.balance);`,
+    },
+    {
+        name: '.NET Class GradeBook',
+        language: 'dotnet',
+        description: 'OOP: conditional return',
+        code: `class GradeBook {
+        int score;
+        GradeBook(int s) {
+                this.score = s;
+        }
+        int Grade() {
+                if (this.score >= 90) return 1;
+                if (this.score >= 75) return 2;
+                return 3;
+        }
+}
+GradeBook g = new GradeBook(82);
+Console.WriteLine(g.Grade());`,
+    },
+    {
+        name: '.NET Class Distance',
+        language: 'dotnet',
+        description: 'OOP: difference logic',
+        code: `class Distance {
+        int a;
+        int b;
+        Distance(int a, int b) {
+                this.a = a;
+                this.b = b;
+        }
+        int Diff() {
+                if (this.a > this.b) return this.a - this.b;
+                return this.b - this.a;
+        }
+}
+Distance d = new Distance(3, 14);
+Console.WriteLine(d.Diff());`,
+    },
+    {
+        name: '.NET Class Tracker Loop',
+        language: 'dotnet',
+        description: 'OOP object updated in loop',
+        code: `class Tracker {
+        int total;
+        Tracker() {
+                this.total = 0;
+        }
+        void Add(int v) {
+                this.total = this.total + v;
+        }
+}
+Tracker t = new Tracker();
+for (int i = 1; i <= 5; i++) {
+        t.Add(i);
+}
+Console.WriteLine(t.total);`,
+    },
+    {
+        name: '.NET Class Box Chain',
+        language: 'dotnet',
+        description: 'OOP chained updates',
+        code: `class Box {
+        int value;
+        Box(int v) {
+                this.value = v;
+        }
+        void Double() {
+                this.value = this.value * 2;
+        }
+        void Minus() {
+                this.value = this.value - 1;
+        }
+}
+Box b = new Box(4);
+b.Double();
+b.Minus();
+Console.WriteLine(b.value);`,
+    },
+    {
+        name: '.NET Class Lamp Toggle',
+        language: 'dotnet',
+        description: 'OOP toggle behavior',
+        code: `class Lamp {
+        int state;
+        Lamp(int s) {
+                this.state = s;
+        }
+        void Toggle() {
+                this.state = 1 - this.state;
+        }
+}
+Lamp l = new Lamp(0);
+l.Toggle();
+Console.WriteLine(l.state);`,
+    },
+    {
+        name: '.NET Class MathBox',
+        language: 'dotnet',
+        description: 'OOP return computation',
+        code: `class MathBox {
+        int x;
+        MathBox(int x) {
+                this.x = x;
+        }
+        int Square() {
+                return this.x * this.x;
+        }
+}
+MathBox m = new MathBox(11);
+Console.WriteLine(m.Square());`,
+    },
+    {
+        name: '.NET Class Pair Sum',
+        language: 'dotnet',
+        description: 'OOP with two fields',
+        code: `class Pair {
+        int a;
+        int b;
+        Pair(int a, int b) {
+                this.a = a;
+                this.b = b;
+        }
+        int Sum() {
+                return this.a + this.b;
+        }
+}
+Pair p = new Pair(9, 13);
+Console.WriteLine(p.Sum());`,
+    },
+    {
+        name: '.NET Class Two Objects',
+        language: 'dotnet',
+        description: 'Independent object states',
+        code: `class Meter {
+        int value;
+        Meter(int v) {
+                this.value = v;
+        }
+        void Add(int x) {
+                this.value = this.value + x;
+        }
+}
+Meter m1 = new Meter(1);
+Meter m2 = new Meter(10);
+m1.Add(2);
+Console.WriteLine(m1.value);
+Console.WriteLine(m2.value);`,
+    },
+    {
+        name: '.NET Class Array Processor',
+        language: 'dotnet',
+        description: 'OOP processor with constructor and method',
+        code: `class Processor {
+        int value;
+        Processor(int v) {
+            this.value = v;
+        }
+        int Sum4(int x) {
+            return x + this.value;
+        }
+}
+    Processor p = new Processor(6);
+    Console.WriteLine(p.Sum4(4));`,
+    },
+    {
+        name: '.NET Class Threshold',
+        language: 'dotnet',
+        description: 'OOP method with branching',
+        code: `class Threshold {
+        int value;
+        Threshold(int v) {
+                this.value = v;
+        }
+        int Check() {
+                if (this.value > 50) return 1;
+                return 0;
+        }
+}
+Threshold t = new Threshold(42);
+Console.WriteLine(t.Check());`,
+    },
 ];
