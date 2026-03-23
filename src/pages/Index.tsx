@@ -234,7 +234,7 @@ const Index = () => {
                     alt="Conan"
                     className="w-20 sm:w-24 md:w-32 h-auto object-contain"
                 />
-                <span>nerd.fun</span>
+                <span>nerds.games</span>
             </h1>
             <p className="font-body text-lg sm:text-xl md:text-2xl text-muted-foreground font-light tracking-wide">
                 Games of luck. Battles of skill.
