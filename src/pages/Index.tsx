@@ -194,6 +194,14 @@ const games = [
     to: "/visionary",
     animation: <RocketAnim />,
   },
+  {
+    icon: "🧠",
+    title: "VisualCode Studio",
+    description: "Next-gen code visualization workspace with timeline, memory snapshots, and execution insights.",
+    to: "/visualcode-studio",
+    comingSoon: true,
+    animation: <CodeFlowAnim />,
+  },
 ];
 
 const Index = () => {

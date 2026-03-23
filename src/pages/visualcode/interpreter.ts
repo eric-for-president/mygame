@@ -1446,10 +1446,22 @@ class JavaScriptInterpreter {
     // Preprocess function calls
     let processed = this.preprocessFuncs(expr, scope);
 
-    const keys = Object.keys(scope);
-    const vals = Object.values(scope);
+    const keys: string[] = [];
+    const vals: any[] = [];
+    let safeExpr = processed;
+    for (const [k, v] of Object.entries(scope)) {
+      if (k === 'this') {
+        keys.push('__this');
+        vals.push(v);
+        safeExpr = safeExpr.replace(/\bthis\b/g, '__this');
+      } else {
+        keys.push(k);
+        vals.push(v);
+      }
+    }
+
     try {
-      return new Function(...keys, `"use strict"; return (${processed})`)(...vals);
+      return new Function(...keys, `"use strict"; return (${safeExpr})`)(...vals);
     } catch { return undefined; }
   }
 
@@ -1536,7 +1548,7 @@ class JavaScriptInterpreter {
       }
 
       const body = lines.slice(bodyStart, j);
-      const methods: Record<string, { params: string[]; body: string[]; startLine: number }> = {};
+      const methods: Record<string, { params: string[]; body: string[]; startLine: number }> = Object.create(null);
 
       let bi = 0;
       while (bi < body.length) {
@@ -1571,7 +1583,9 @@ class JavaScriptInterpreter {
     const cls = this.classes[name];
     if (!cls) return undefined;
     const instance: Record<string, any> = { __class: name };
-    const ctor = cls.methods['constructor'];
+    const ctor = Object.prototype.hasOwnProperty.call(cls.methods, 'constructor')
+      ? cls.methods['constructor']
+      : undefined;
     if (!ctor) return instance;
 
     const local: Record<string, any> = { this: instance };
@@ -1629,6 +1643,8 @@ function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
   const classStack: string[] = [];
   let inClass = false;
   const out: string[] = [];
+  let sawMainMethod = false;
+  const entryClasses: Array<{ className: string; methodName: string }> = [];
 
   const removeModifiers = (s: string) =>
     s
@@ -1699,9 +1715,14 @@ function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
 
     // Convert method signatures in class: int add(int a, int b) { -> add(a, b) {
     if (inClass) {
-      const m = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
+      const m = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)(?:\[\])?\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
       if (m) {
         const methodName = m[1];
+        if (methodName.toLowerCase() === 'main') {
+          sawMainMethod = true;
+          const currentClass = classStack[classStack.length - 1];
+          if (currentClass) entryClasses.push({ className: currentClass, methodName });
+        }
         const params = m[2]
           .split(',')
           .map(p => p.trim())
@@ -1714,9 +1735,10 @@ function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
     }
 
     // Convert top-level typed function signatures to JS function declarations
-    const fn = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
+    const fn = removeModifiers(line).match(/^(?:void|int|double|float|long|bool|boolean|String|string|char|decimal)(?:\[\])?\s+(\w+)\s*\(([^)]*)\)\s*\{?\s*$/);
     if (fn && !inClass) {
       const fnName = fn[1];
+      if (fnName.toLowerCase() === 'main') sawMainMethod = true;
       const params = fn[2]
         .split(',')
         .map(p => p.trim())
@@ -1729,12 +1751,29 @@ function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
 
     // Convert typed declarations: int x = 1; -> let x = 1;
     line = line
+      .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal)(?:\[\])\s+(\w+)\s*=/g, 'let $1 =')
       .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal|var)\s+(\w+)\s*=/g, 'let $1 =')
+      .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal)(?:\[\])\s+(\w+)\b/g, 'let $1')
       .replace(/\b(?:int|double|float|long|bool|boolean|String|string|char|decimal|var)\s+(\w+)\b/g, 'let $1')
       .replace(/new\s+\w+\s*\[(\d+)\]/g, 'new Array($1).fill(0)')
       .replace(/new\s+\w+\[\]\s*\{([^}]*)\}/g, '[$1]');
 
     out.push(line);
+  }
+
+  if (sawMainMethod) {
+    for (const entry of entryClasses) {
+      const safe = entry.className.replace(/[^a-zA-Z0-9_]/g, '_');
+      out.push(`let __entry_${safe} = new ${entry.className}();`);
+      out.push(`__entry_${safe}.${entry.methodName}([]);`);
+    }
+
+    out.push('if (typeof main === "function") {');
+    out.push('    main([]);');
+    out.push('}');
+    out.push('if (typeof Main === "function") {');
+    out.push('    Main([]);');
+    out.push('}');
   }
 
   // Keep language param to allow future language-specific tweaks.

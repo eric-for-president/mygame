@@ -43,7 +43,7 @@ const GameCard = ({ icon, title, description, to, comingSoon, delay = 0, animati
         </p>
 
         {comingSoon && (
-          <span className="inline-block mt-4 px-3 py-1 text-xs font-display font-bold tracking-wider uppercase bg-neon-purple/20 text-neon-purple border border-neon-purple/30 rounded-full">
+          <span className="inline-block mt-4 px-3 py-1 text-xs font-display font-bold tracking-wider uppercase bg-neon-purple/20 text-neon-purple border border-neon-purple/30 rounded-full animate-pulse">
             Coming Soon
           </span>
         )}

@@ -127,4 +127,32 @@ describe('VisualCode examples execution', () => {
     expect(reverseOut).toBe('54321');
     expect(digitsOut).toBe('5');
   });
+
+  it('executes custom Java main-wrapper code', () => {
+    const javaCode = `class Program {
+    static void Main(string[] args) {
+        int a = 2;
+        int b = 9;
+        System.out.println(a + b);
+    }
+}`;
+
+    const steps = traceCode(javaCode, 'java');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('11');
+  });
+
+  it('executes custom .NET main-wrapper code', () => {
+    const dotnetCode = `class Program {
+    static void Main(string[] args) {
+        int x = 4;
+        int y = 5;
+        Console.WriteLine(x * y);
+    }
+}`;
+
+    const steps = traceCode(dotnetCode, 'dotnet');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('20');
+  });
 });
