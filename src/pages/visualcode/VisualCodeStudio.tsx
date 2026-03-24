@@ -390,7 +390,7 @@ const VisualCodeStudio = () => {
 
         <div className="mb-6">
           <h1 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-foreground mb-2">
-            VisualCode Studio
+            Fun Code Visualization
           </h1>
           <p className="text-muted-foreground max-w-3xl">
             Dedicated workspace for the full-fledged code visualization experience. This page is separated from the existing VisualCode Lab so we can build the next generation safely.

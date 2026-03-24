@@ -196,7 +196,7 @@ const games = [
   },
   {
     icon: "🧠",
-    title: "VisualCode Studio",
+    title: "Fun Code Visualization",
     description: "Next-gen code visualization workspace with timeline, memory snapshots, and execution insights.",
     to: "/visualcode-studio",
     comingSoon: true,
