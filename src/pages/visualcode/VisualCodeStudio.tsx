@@ -6,6 +6,12 @@ import ParticleBackground from "@/components/ParticleBackground";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { traceCode, type ExecutionStep, type Language } from "./interpreter";
+import {
+  ALL_CATEGORY,
+  STUDIO_EXAMPLES_PER_LANGUAGE,
+  studioCategoriesByLanguage,
+  studioExamplesByLanguage,
+} from "./studioExamples";
 
 const starterCode: Record<Language, string> = {
   python: `total = 0
@@ -221,10 +227,32 @@ const computeHeatMap = (
 const VisualCodeStudio = () => {
   const [language, setLanguage] = useState<Language>("python");
   const [code, setCode] = useState<string>(starterCode.python);
+  const [selectedCategory, setSelectedCategory] = useState<string>(ALL_CATEGORY);
+  const [selectedExampleName, setSelectedExampleName] = useState<string>("");
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [selectedMatrix, setSelectedMatrix] = useState<string>("");
+
+  const languageExamples = studioExamplesByLanguage[language];
+  const languageCategories = studioCategoriesByLanguage[language];
+  const filteredExamples = useMemo(
+    () => selectedCategory === ALL_CATEGORY
+      ? languageExamples
+      : languageExamples.filter(example => example.categories.includes(selectedCategory)),
+    [languageExamples, selectedCategory]
+  );
+
+  const resetTraceState = () => {
+    setSteps([]);
+    setActiveStep(0);
+    setError("");
+  };
+
+  const loadCode = (nextCode: string) => {
+    setCode(nextCode);
+    resetTraceState();
+  };
 
   const current = steps[activeStep] ?? null;
   const previous = activeStep > 0 ? steps[activeStep - 1] : null;
@@ -317,6 +345,28 @@ const VisualCodeStudio = () => {
   const codeLines = useMemo(() => code.split("\n"), [code]);
   const currentLine = current?.line ?? -1;
 
+  useEffect(() => {
+    const currentLanguageExamples = studioExamplesByLanguage[language];
+    setSelectedCategory(ALL_CATEGORY);
+    const first = currentLanguageExamples[0];
+    if (first) {
+      setSelectedExampleName(first.name);
+      setCode(first.code);
+      resetTraceState();
+    } else {
+      setSelectedExampleName("");
+      setCode(starterCode[language]);
+      resetTraceState();
+    }
+  }, [language]);
+
+  useEffect(() => {
+    if (selectedExampleName === "") return;
+    if (!filteredExamples.some(example => example.name === selectedExampleName)) {
+      setSelectedExampleName("");
+    }
+  }, [filteredExamples, selectedExampleName]);
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <ParticleBackground />
@@ -363,10 +413,6 @@ const VisualCodeStudio = () => {
                 onChange={e => {
                   const next = e.target.value as Language;
                   setLanguage(next);
-                  setCode(starterCode[next]);
-                  setSteps([]);
-                  setActiveStep(0);
-                  setError("");
                 }}
                 className="px-2 py-1 rounded-md bg-muted/50 border border-white/10 text-xs font-mono text-foreground"
               >
@@ -385,10 +431,8 @@ const VisualCodeStudio = () => {
                 size="sm"
                 variant="secondary"
                 onClick={() => {
-                  setCode(starterCode[language]);
-                  setSteps([]);
-                  setActiveStep(0);
-                  setError("");
+                  setSelectedExampleName("");
+                  loadCode(starterCode[language]);
                 }}
               >
                 Reset
@@ -398,14 +442,97 @@ const VisualCodeStudio = () => {
                 size="sm"
                 variant="secondary"
                 onClick={() => {
-                  setCode(matrixDemoCode[language]);
-                  setSteps([]);
-                  setActiveStep(0);
-                  setError("");
+                  setSelectedExampleName("");
+                  loadCode(matrixDemoCode[language]);
                 }}
               >
                 Matrix Demo
               </Button>
+            </div>
+
+            <div className="mb-3 rounded-lg border border-white/10 bg-white/5 p-2.5">
+              <div className="mb-2 text-[11px] font-mono text-muted-foreground">
+                Studio examples for {language.toUpperCase()}: {languageExamples.length}/{STUDIO_EXAMPLES_PER_LANGUAGE}
+              </div>
+              <div className="mb-2 flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-mono text-muted-foreground">Category</span>
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  className="px-2 py-1 rounded-md bg-muted/50 border border-white/10 text-xs font-mono text-foreground"
+                >
+                  <option value={ALL_CATEGORY}>All Categories ({languageExamples.length})</option>
+                  {languageCategories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  Showing {filteredExamples.length}
+                </span>
+              </div>
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {languageCategories.map(category => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border transition-colors ${
+                      selectedCategory === category
+                        ? "bg-neon-cyan/20 border-neon-cyan/40 text-neon-cyan"
+                        : "bg-white/5 border-white/15 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(ALL_CATEGORY)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border transition-colors ${
+                    selectedCategory === ALL_CATEGORY
+                      ? "bg-neon-cyan/20 border-neon-cyan/40 text-neon-cyan"
+                      : "bg-white/5 border-white/15 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  all
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={selectedExampleName}
+                  onChange={e => {
+                    const name = e.target.value;
+                    setSelectedExampleName(name);
+                    const selected = filteredExamples.find(example => example.name === name);
+                    if (selected) {
+                      loadCode(selected.code);
+                    }
+                  }}
+                  className="min-w-[240px] flex-1 px-2 py-1 rounded-md bg-muted/50 border border-white/10 text-xs font-mono text-foreground"
+                >
+                  <option value="">Custom / current editor code</option>
+                  {filteredExamples.map(example => (
+                    <option key={example.name} value={example.name}>
+                      {example.name} [{example.primaryCategory}]
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    if (filteredExamples.length === 0) return;
+                    const random = filteredExamples[Math.floor(Math.random() * filteredExamples.length)];
+                    setSelectedExampleName(random.name);
+                    loadCode(random.code);
+                  }}
+                  disabled={filteredExamples.length === 0}
+                >
+                  Random Example
+                </Button>
+              </div>
             </div>
 
             <div className="relative h-[420px] rounded-lg border border-white/10 overflow-hidden bg-[hsl(220,20%,8%)]">
