@@ -160,13 +160,16 @@ const DrawCircle = () => {
     if (meanRadius < 20) return 0;
 
     const avgError = distances.reduce((sum, d) => sum + Math.abs(d - meanRadius), 0) / distances.length;
-    const rawScore = Math.max(0, 100 - (avgError / meanRadius) * 100);
+    
+    // More generous scoring formula using power function for better perception of closeness
+    const errorRatio = Math.min(1, avgError / meanRadius);
+    const rawScore = 100 * Math.pow(1 - errorRatio, 1.5);
 
     // Bonus: check if shape is closed
     const first = points[0];
     const last = points[points.length - 1];
     const closeDist = Math.sqrt((first.x - last.x) ** 2 + (first.y - last.y) ** 2);
-    const closureBonus = closeDist < meanRadius * 0.3 ? 2 : -(closeDist / meanRadius) * 5;
+    const closureBonus = closeDist < meanRadius * 0.3 ? 3 : -(closeDist / meanRadius) * 3;
 
     const finalScore = Math.max(0, Math.min(100, rawScore + closureBonus));
     return Math.round(finalScore * 10) / 10;

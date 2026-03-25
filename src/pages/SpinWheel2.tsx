@@ -121,6 +121,7 @@ const SpinWheel2 = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dimBg, setDimBg] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
   const wheelRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -133,7 +134,21 @@ const SpinWheel2 = () => {
     setDimBg(false);
 
     const extraSpins = 5 + Math.random() * 5;
-    const randomAngle = Math.random() * 360;
+    
+    // Generate random segment index that's different from last selected
+    let selectedIndex = Math.floor(Math.random() * SEGMENTS.length);
+    if (lastSelectedIndex !== -1) {
+      // Keep trying until we get a different segment
+      while (selectedIndex === lastSelectedIndex) {
+        selectedIndex = Math.floor(Math.random() * SEGMENTS.length);
+      }
+    }
+    
+    // Convert selected segment index to random angle within that segment
+    const segmentStartAngle = selectedIndex * SEGMENT_ANGLE;
+    const randomOffsetInSegment = Math.random() * SEGMENT_ANGLE;
+    const randomAngle = segmentStartAngle + randomOffsetInSegment;
+    
     const totalDegrees = extraSpins * 360 + randomAngle;
     const newRotation = rotation + totalDegrees;
 
@@ -146,6 +161,7 @@ const SpinWheel2 = () => {
 
       setResult(selected.label);
       setResultTimer(selected.timer);
+      setLastSelectedIndex(segmentIndex % SEGMENTS.length);
       setSpinning(false);
       setSpinCount((c) => c + 1);
       setShowConfetti(true);
@@ -153,7 +169,7 @@ const SpinWheel2 = () => {
 
       setTimeout(() => setShowConfetti(false), 4000);
     }, 4500);
-  }, [spinning, rotation]);
+  }, [spinning, rotation, lastSelectedIndex]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && containerRef.current) {

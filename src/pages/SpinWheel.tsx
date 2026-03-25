@@ -45,6 +45,7 @@ const SpinWheel = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSegments, setEditSegments] = useState<Segment[]>([]);
   const [newLabel, setNewLabel] = useState("");
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
   const wheelRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +89,21 @@ const SpinWheel = () => {
     setShowConfetti(false);
 
     const extraSpins = 5 + Math.random() * 5;
-    const randomAngle = Math.random() * 360;
+    
+    // Generate random segment index that's different from last selected
+    let selectedIndex = Math.floor(Math.random() * segments.length);
+    if (lastSelectedIndex !== -1) {
+      // Keep trying until we get a different segment
+      while (selectedIndex === lastSelectedIndex) {
+        selectedIndex = Math.floor(Math.random() * segments.length);
+      }
+    }
+    
+    // Convert selected segment index to random angle within that segment
+    const segmentStartAngle = selectedIndex * SEGMENT_ANGLE;
+    const randomOffsetInSegment = Math.random() * SEGMENT_ANGLE;
+    const randomAngle = segmentStartAngle + randomOffsetInSegment;
+    
     const totalDegrees = extraSpins * 360 + randomAngle;
     const newRotation = rotation + totalDegrees;
 
@@ -100,12 +115,13 @@ const SpinWheel = () => {
       const selected = segments[segmentIndex % segments.length];
 
       setResult(selected.label);
+      setLastSelectedIndex(segmentIndex % segments.length);
       setSpinning(false);
       setSpinCount((c) => c + 1);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
     }, 4500);
-  }, [spinning, rotation, segments, SEGMENT_ANGLE]);
+  }, [spinning, rotation, segments, SEGMENT_ANGLE, lastSelectedIndex]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && containerRef.current) {
@@ -139,11 +155,13 @@ const SpinWheel = () => {
     setSegments(editSegments);
     setShowEditModal(false);
     setResult(null);
+    setLastSelectedIndex(-1);
     if (user) await saveSegments(editSegments);
   };
 
   const resetToDefault = async () => {
     setEditSegments([...DEFAULT_SEGMENTS]);
+    setLastSelectedIndex(-1);
   };
 
   const wheelSize = 320;
