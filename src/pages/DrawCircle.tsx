@@ -146,34 +146,83 @@ const DrawCircle = () => {
     });
   }, []);
 
+  const fitCircle = useCallback((points: Point[]) => {
+    let meanX = 0;
+    let meanY = 0;
+    points.forEach((p) => {
+      meanX += p.x;
+      meanY += p.y;
+    });
+    meanX /= points.length;
+    meanY /= points.length;
+
+    let suu = 0;
+    let svv = 0;
+    let suv = 0;
+    let suuu = 0;
+    let svvv = 0;
+    let suvv = 0;
+    let svuu = 0;
+
+    for (const p of points) {
+      const u = p.x - meanX;
+      const v = p.y - meanY;
+      const uu = u * u;
+      const vv = v * v;
+
+      suu += uu;
+      svv += vv;
+      suv += u * v;
+      suuu += uu * u;
+      svvv += vv * v;
+      suvv += u * vv;
+      svuu += v * uu;
+    }
+
+    const det = suu * svv - suv * suv;
+    if (Math.abs(det) < 1e-6) {
+      const radius =
+        points.reduce((sum, p) => sum + Math.hypot(p.x - meanX, p.y - meanY), 0) / points.length;
+      return { cx: meanX, cy: meanY, r: radius };
+    }
+
+    const uc = (0.5 * (suuu + suvv) * svv - 0.5 * (svvv + svuu) * suv) / det;
+    const vc = (0.5 * (svvv + svuu) * suu - 0.5 * (suuu + suvv) * suv) / det;
+
+    const cx = uc + meanX;
+    const cy = vc + meanY;
+    const r = points.reduce((sum, p) => sum + Math.hypot(p.x - cx, p.y - cy), 0) / points.length;
+
+    return { cx, cy, r };
+  }, []);
+
   const calculateScore = useCallback((points: Point[]) => {
     if (points.length < 10) return 0;
 
-    let cx = 0, cy = 0;
-    points.forEach(p => { cx += p.x; cy += p.y; });
-    cx /= points.length;
-    cy /= points.length;
-
-    const distances = points.map(p => Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2));
-    const meanRadius = distances.reduce((a, b) => a + b, 0) / distances.length;
+    const { cx, cy, r: meanRadius } = fitCircle(points);
+    const distances = points.map((p) => Math.hypot(p.x - cx, p.y - cy));
 
     if (meanRadius < 20) return 0;
 
     const avgError = distances.reduce((sum, d) => sum + Math.abs(d - meanRadius), 0) / distances.length;
-    
-    // More generous scoring formula using power function for better perception of closeness
-    const errorRatio = Math.min(1, avgError / meanRadius);
-    const rawScore = 100 * Math.pow(1 - errorRatio, 1.5);
+    const rmsError = Math.sqrt(
+      distances.reduce((sum, d) => sum + (d - meanRadius) * (d - meanRadius), 0) / distances.length
+    );
+
+    // Blend MAE/RMSE to better reflect perceived circularity and remain scale-independent.
+    const normalizedError = Math.min(1, (0.65 * avgError + 0.35 * rmsError) / meanRadius);
+    const rawScore = Math.max(0, 100 * (1 - 1.35 * normalizedError));
 
     // Bonus: check if shape is closed
     const first = points[0];
     const last = points[points.length - 1];
-    const closeDist = Math.sqrt((first.x - last.x) ** 2 + (first.y - last.y) ** 2);
-    const closureBonus = closeDist < meanRadius * 0.3 ? 3 : -(closeDist / meanRadius) * 3;
+    const closeDist = Math.hypot(first.x - last.x, first.y - last.y);
+    const closureRatio = closeDist / meanRadius;
+    const closureBonus = closureRatio < 0.25 ? 3 : -Math.min(3, closureRatio * 2.2);
 
     const finalScore = Math.max(0, Math.min(100, rawScore + closureBonus));
     return Math.round(finalScore * 10) / 10;
-  }, []);
+  }, [fitCircle]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (phase !== "idle") return;
@@ -225,13 +274,8 @@ const DrawCircle = () => {
     const s = calculateScore(points);
     setScore(s);
 
-    // Compute ideal circle
-    let cx = 0, cy = 0;
-    points.forEach(p => { cx += p.x; cy += p.y; });
-    cx /= points.length;
-    cy /= points.length;
-    const distances = points.map(p => Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2));
-    const meanR = distances.reduce((a, b) => a + b, 0) / distances.length;
+    // Compute ideal circle with the same fit used by scoring.
+    const { cx, cy, r: meanR } = fitCircle(points);
     setIdealCircle({ cx, cy, r: meanR });
 
     // Heatmap
@@ -253,7 +297,7 @@ const DrawCircle = () => {
     if (s >= 95) setShowConfetti(true);
 
     setPhase("result");
-  }, [phase, calculateScore, drawHeatmap, attempts, avgScore, bestScore]);
+  }, [phase, calculateScore, drawHeatmap, attempts, avgScore, bestScore, fitCircle]);
 
   useEffect(() => {
     if (phase === "result" && showIdeal && idealCircle) {
