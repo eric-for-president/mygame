@@ -780,7 +780,7 @@ const VisualCodeStudio = () => {
                       key={`${item.step}-${item.name}-${JSON.stringify(item.value)}`}
                       className="rounded bg-white/5 px-2 py-1 text-xs font-mono"
                     >
-                      S{item.step} | L{item.line} | {item.name} = {formatValue(item.value)}
+                      STEP {item.step} | L{item.line} | {item.name} = {formatValue(item.value)}
                     </div>
                   ))
                 ) : (

@@ -1097,7 +1097,7 @@ const Canvas = ({
                 <div className="space-y-1">
                   {records.slice(-6).map((r, i) => (
                     <p key={`${name}-${i}-${r.stepIndex}`} className="text-[10px] font-mono text-foreground/85">
-                      S{r.stepIndex + 1} | L{r.line + 1} | {formatVal(r.value)}
+                      STEP {r.stepIndex + 1} | L{r.line + 1} | {formatVal(r.value)}
                     </p>
                   ))}
                 </div>
