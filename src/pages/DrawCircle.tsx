@@ -422,34 +422,25 @@ const DrawCircle = () => {
     const last = points[points.length - 1];
     const closeDist = Math.hypot(first.x - last.x, first.y - last.y);
     const closureRatio = closeDist / meanRadius;
-    const closureBonus = closureRatio < 0.25 ? 4 : -Math.min(2.5, closureRatio * 2);
+    const closureBonus = closureRatio < 0.18 ? 2 : -Math.min(3, closureRatio * 2.4);
 
     const shapePenalty = intersectionPenalty + revolutionPenalty + backtrackPenalty + outlierPenalty;
     const technicalScore = Math.max(0, Math.min(100, rawScore + closureBonus - shapePenalty));
 
-    // Reward very clean circles with a full score.
+    const maxAbsError = absErrors[absErrors.length - 1] ?? 0;
+
+    // 100 is reserved for truly near-errorless circles only.
     const perfectLike =
-      normalizedError < 0.035 &&
-      p90Ratio < 0.1 &&
-      closureRatio < 0.12 &&
+      normalizedError < 0.006 &&
+      p90Ratio < 0.03 &&
+      closureRatio < 0.03 &&
       intersections === 0 &&
-      Math.abs(revolutions - 1) < 0.08;
+      Math.abs(revolutions - 1) < 0.01 &&
+      turnRatio < 1.02 &&
+      maxAbsError < 1.2;
     if (perfectLike) return 100;
 
-    // Motivational remap: good circles get visibly high scores.
-    let motivationalScore = technicalScore;
-    if (technicalScore >= 75) {
-      // 75..100 -> 90..100
-      motivationalScore = 90 + (technicalScore - 75) * (10 / 25);
-    } else if (technicalScore >= 50) {
-      // 50..75 -> 75..90
-      motivationalScore = 75 + (technicalScore - 50) * (15 / 25);
-    } else {
-      // Keep low scores low-ish, but less discouraging.
-      motivationalScore = technicalScore * 1.2;
-    }
-
-    const finalScore = Math.max(0, Math.min(100, motivationalScore));
+    const finalScore = Math.max(0, Math.min(99.9, technicalScore));
     return Math.round(finalScore * 10) / 10;
   }, [fitCircle, smoothPoints, segmentsIntersect]);
 
