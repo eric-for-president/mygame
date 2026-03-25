@@ -34,6 +34,8 @@ const DrawCircle = () => {
   const [classroomMode, setClassroomMode] = useState(false);
   const [idealCircle, setIdealCircle] = useState<{ cx: number; cy: number; r: number } | null>(null);
   const [showIdeal, setShowIdeal] = useState(false);
+  const [ruleViolation, setRuleViolation] = useState(false);
+  const [violationMessage, setViolationMessage] = useState<string | null>(null);
 
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -196,7 +198,29 @@ const DrawCircle = () => {
     return { cx, cy, r };
   }, []);
 
+  const smoothPoints = useCallback((points: Point[]) => {
+    if (points.length < 8) return points;
+    const windowRadius = 2;
+    const smoothed: Point[] = [];
+
+    for (let i = 0; i < points.length; i++) {
+      let sx = 0;
+      let sy = 0;
+      let count = 0;
+      for (let j = i - windowRadius; j <= i + windowRadius; j++) {
+        const k = Math.max(0, Math.min(points.length - 1, j));
+        sx += points[k].x;
+        sy += points[k].y;
+        count += 1;
+      }
+      smoothed.push({ x: sx / count, y: sy / count });
+    }
+
+    return smoothed;
+  }, []);
+
   const segmentsIntersect = useCallback((a: Point, b: Point, c: Point, d: Point) => {
+    const EPS = 1e-4;
     const orient = (p: Point, q: Point, r: Point) =>
       (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
 
@@ -210,18 +234,125 @@ const DrawCircle = () => {
     const o4 = orient(c, d, b);
 
     if ((o1 > 0) !== (o2 > 0) && (o3 > 0) !== (o4 > 0)) return true;
-    if (o1 === 0 && onSegment(a, c, b)) return true;
-    if (o2 === 0 && onSegment(a, d, b)) return true;
-    if (o3 === 0 && onSegment(c, a, d)) return true;
-    if (o4 === 0 && onSegment(c, b, d)) return true;
+    if (Math.abs(o1) < EPS && onSegment(a, c, b)) return true;
+    if (Math.abs(o2) < EPS && onSegment(a, d, b)) return true;
+    if (Math.abs(o3) < EPS && onSegment(c, a, d)) return true;
+    if (Math.abs(o4) < EPS && onSegment(c, b, d)) return true;
     return false;
   }, []);
+
+  const playViolationSound = useCallback(() => {
+    try {
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const ctx = new AudioContextCtor();
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = "sawtooth";
+      osc2.type = "triangle";
+      osc1.frequency.setValueAtTime(740, now);
+      osc1.frequency.exponentialRampToValueAtTime(280, now + 0.25);
+      osc2.frequency.setValueAtTime(520, now);
+      osc2.frequency.exponentialRampToValueAtTime(210, now + 0.25);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.3);
+      osc2.stop(now + 0.3);
+
+      setTimeout(() => {
+        void ctx.close();
+      }, 380);
+    } catch {
+      // Non-blocking sound effect failure should not affect gameplay.
+    }
+  }, []);
+
+  const getViolationInfo = useCallback((points: Point[]) => {
+    if (points.length < 10) {
+      return { violated: true, message: "Too short - draw a full circle" };
+    }
+
+    const scoredPoints = smoothPoints(points);
+    const { cx, cy, r } = fitCircle(scoredPoints);
+    if (r < 20) return { violated: true, message: "Circle is too small" };
+
+    const first = points[0];
+    const last = points[points.length - 1];
+    const closureRatio = Math.hypot(first.x - last.x, first.y - last.y) / r;
+
+    let totalSigned = 0;
+    let totalAbs = 0;
+    let prev = Math.atan2(scoredPoints[0].y - cy, scoredPoints[0].x - cx);
+    for (let i = 1; i < scoredPoints.length; i++) {
+      const current = Math.atan2(scoredPoints[i].y - cy, scoredPoints[i].x - cx);
+      let delta = current - prev;
+      while (delta > Math.PI) delta -= 2 * Math.PI;
+      while (delta < -Math.PI) delta += 2 * Math.PI;
+      totalSigned += delta;
+      totalAbs += Math.abs(delta);
+      prev = current;
+    }
+
+    const revolutions = Math.abs(totalSigned) / (2 * Math.PI);
+    const turnRatio = totalAbs / (Math.abs(totalSigned) + 1e-6);
+
+    const sampleStep = Math.max(1, Math.floor(scoredPoints.length / 160));
+    const sampled = scoredPoints.filter((_, i) => i % sampleStep === 0);
+    if (sampled[sampled.length - 1] !== scoredPoints[scoredPoints.length - 1]) {
+      sampled.push(scoredPoints[scoredPoints.length - 1]);
+    }
+
+    let intersections = 0;
+    for (let i = 0; i < sampled.length - 1; i++) {
+      const a = sampled[i];
+      const b = sampled[i + 1];
+      for (let j = i + 2; j < sampled.length - 1; j++) {
+        if (i === 0 && j === sampled.length - 2) continue;
+        const c = sampled[j];
+        const d = sampled[j + 1];
+        if (segmentsIntersect(a, b, c, d)) {
+          intersections += 1;
+          if (intersections >= 3) break;
+        }
+      }
+      if (intersections >= 3) break;
+    }
+
+    if (intersections > 0) {
+      return { violated: true, message: "Path crossed itself - circle rule violated" };
+    }
+    if (revolutions < 0.72) {
+      return { violated: true, message: "Semi circle / incomplete loop" };
+    }
+    if (revolutions > 1.35 || turnRatio > 1.5) {
+      return { violated: true, message: "Spiral or scribble detected" };
+    }
+    if (closureRatio > 0.45) {
+      return { violated: true, message: "Circle not closed" };
+    }
+
+    return { violated: false, message: null as string | null };
+  }, [fitCircle, smoothPoints, segmentsIntersect]);
 
   const calculateScore = useCallback((points: Point[]) => {
     if (points.length < 10) return 0;
 
-    const { cx, cy, r: meanRadius } = fitCircle(points);
-    const distances = points.map((p) => Math.hypot(p.x - cx, p.y - cy));
+    const scoredPoints = smoothPoints(points);
+    const { cx, cy, r: meanRadius } = fitCircle(scoredPoints);
+    const distances = scoredPoints.map((p) => Math.hypot(p.x - cx, p.y - cy));
 
     if (meanRadius < 20) return 0;
 
@@ -240,13 +371,13 @@ const DrawCircle = () => {
       .sort((a, b) => a - b);
     const p90Error = absErrors[Math.floor((absErrors.length - 1) * 0.9)] ?? 0;
     const p90Ratio = p90Error / meanRadius;
-    const outlierPenalty = Math.max(0, (p90Ratio - 0.16) * 70);
+    const outlierPenalty = Math.max(0, (p90Ratio - 0.24) * 30);
 
     // Count self-intersections (sampled for performance). A true circle should have none.
-    const sampleStep = Math.max(1, Math.floor(points.length / 180));
-    const sampled = points.filter((_, i) => i % sampleStep === 0);
-    if (sampled[sampled.length - 1] !== points[points.length - 1]) {
-      sampled.push(points[points.length - 1]);
+    const sampleStep = Math.max(1, Math.floor(scoredPoints.length / 160));
+    const sampled = scoredPoints.filter((_, i) => i % sampleStep === 0);
+    if (sampled[sampled.length - 1] !== scoredPoints[scoredPoints.length - 1]) {
+      sampled.push(scoredPoints[scoredPoints.length - 1]);
     }
 
     let intersections = 0;
@@ -265,14 +396,14 @@ const DrawCircle = () => {
       }
       if (intersections >= 6) break;
     }
-    const intersectionPenalty = intersections * 9;
+    const intersectionPenalty = Math.max(0, intersections - 1) * 6;
 
     // Track angular sweep quality around fitted center.
     let totalSigned = 0;
     let totalAbs = 0;
-    let prev = Math.atan2(points[0].y - cy, points[0].x - cx);
-    for (let i = 1; i < points.length; i++) {
-      const current = Math.atan2(points[i].y - cy, points[i].x - cx);
+    let prev = Math.atan2(scoredPoints[0].y - cy, scoredPoints[0].x - cx);
+    for (let i = 1; i < scoredPoints.length; i++) {
+      const current = Math.atan2(scoredPoints[i].y - cy, scoredPoints[i].x - cx);
       let delta = current - prev;
       while (delta > Math.PI) delta -= 2 * Math.PI;
       while (delta < -Math.PI) delta += 2 * Math.PI;
@@ -283,20 +414,44 @@ const DrawCircle = () => {
 
     const revolutions = Math.abs(totalSigned) / (2 * Math.PI);
     const turnRatio = totalAbs / (Math.abs(totalSigned) + 1e-6);
-    const revolutionPenalty = Math.min(24, Math.abs(revolutions - 1) * 28);
-    const backtrackPenalty = Math.max(0, (turnRatio - 1.2) * 16);
+    const revolutionPenalty = Math.min(12, Math.abs(revolutions - 1) * 16);
+    const backtrackPenalty = Math.max(0, (turnRatio - 1.35) * 8);
 
     // Bonus: check if shape is closed
     const first = points[0];
     const last = points[points.length - 1];
     const closeDist = Math.hypot(first.x - last.x, first.y - last.y);
     const closureRatio = closeDist / meanRadius;
-    const closureBonus = closureRatio < 0.25 ? 3 : -Math.min(3, closureRatio * 2.2);
+    const closureBonus = closureRatio < 0.25 ? 4 : -Math.min(2.5, closureRatio * 2);
 
     const shapePenalty = intersectionPenalty + revolutionPenalty + backtrackPenalty + outlierPenalty;
-    const finalScore = Math.max(0, Math.min(100, rawScore + closureBonus - shapePenalty));
+    const technicalScore = Math.max(0, Math.min(100, rawScore + closureBonus - shapePenalty));
+
+    // Reward very clean circles with a full score.
+    const perfectLike =
+      normalizedError < 0.035 &&
+      p90Ratio < 0.1 &&
+      closureRatio < 0.12 &&
+      intersections === 0 &&
+      Math.abs(revolutions - 1) < 0.08;
+    if (perfectLike) return 100;
+
+    // Motivational remap: good circles get visibly high scores.
+    let motivationalScore = technicalScore;
+    if (technicalScore >= 75) {
+      // 75..100 -> 90..100
+      motivationalScore = 90 + (technicalScore - 75) * (10 / 25);
+    } else if (technicalScore >= 50) {
+      // 50..75 -> 75..90
+      motivationalScore = 75 + (technicalScore - 50) * (15 / 25);
+    } else {
+      // Keep low scores low-ish, but less discouraging.
+      motivationalScore = technicalScore * 1.2;
+    }
+
+    const finalScore = Math.max(0, Math.min(100, motivationalScore));
     return Math.round(finalScore * 10) / 10;
-  }, [fitCircle, segmentsIntersect]);
+  }, [fitCircle, smoothPoints, segmentsIntersect]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (phase !== "idle") return;
@@ -345,8 +500,13 @@ const DrawCircle = () => {
     e.preventDefault();
 
     const points = pointsRef.current;
+    const violation = getViolationInfo(points);
     const s = calculateScore(points);
-    setScore(s);
+    const finalAttemptScore = violation.violated ? Math.min(s, 35) : s;
+    setScore(finalAttemptScore);
+    setRuleViolation(violation.violated);
+    setViolationMessage(violation.message);
+    if (violation.violated) playViolationSound();
 
     // Compute ideal circle with the same fit used by scoring.
     const { cx, cy, r: meanR } = fitCircle(points);
@@ -357,8 +517,8 @@ const DrawCircle = () => {
 
     // Stats
     const newAttempts = attempts + 1;
-    const newAvg = ((avgScore * attempts) + s) / newAttempts;
-    const newBest = Math.max(bestScore, s);
+    const newAvg = ((avgScore * attempts) + finalAttemptScore) / newAttempts;
+    const newBest = Math.max(bestScore, finalAttemptScore);
 
     setAttempts(newAttempts);
     setAvgScore(Math.round(newAvg * 10) / 10);
@@ -368,10 +528,10 @@ const DrawCircle = () => {
     localStorage.setItem("circle-avg", String(Math.round(newAvg * 10) / 10));
     localStorage.setItem("circle-best", String(newBest));
 
-    if (s >= 95) setShowConfetti(true);
+    if (!violation.violated && finalAttemptScore >= 95) setShowConfetti(true);
 
     setPhase("result");
-  }, [phase, calculateScore, drawHeatmap, attempts, avgScore, bestScore, fitCircle]);
+  }, [phase, getViolationInfo, calculateScore, playViolationSound, drawHeatmap, attempts, avgScore, bestScore, fitCircle]);
 
   useEffect(() => {
     if (phase === "result" && showIdeal && idealCircle) {
@@ -387,6 +547,8 @@ const DrawCircle = () => {
     setShowConfetti(false);
     setIdealCircle(null);
     setShowIdeal(false);
+    setRuleViolation(false);
+    setViolationMessage(null);
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
@@ -517,8 +679,14 @@ const DrawCircle = () => {
                   {score}%
                 </motion.p>
                 <p className="font-display text-sm sm:text-base tracking-widest text-muted-foreground mt-2 uppercase">
-                  {getScoreLabel(score)}
+                  {ruleViolation ? "CIRCLE RULE VIOLATED" : getScoreLabel(score)}
                 </p>
+
+                {ruleViolation && violationMessage && (
+                  <p className="font-display text-[11px] sm:text-xs tracking-wider text-red-400 mt-2 uppercase">
+                    {violationMessage}
+                  </p>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <button
@@ -542,6 +710,21 @@ const DrawCircle = () => {
                 </div>
               </div>
             </motion.div>
+
+            {ruleViolation && (
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 220, damping: 14 }}
+                className="absolute top-[16%] sm:top-[18%] text-red-500/95 font-black leading-none select-none"
+                style={{
+                  fontSize: "clamp(80px, 20vw, 220px)",
+                  textShadow: "0 0 25px rgba(239, 68, 68, 0.6), 0 0 55px rgba(239, 68, 68, 0.35)",
+                }}
+              >
+                X
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
