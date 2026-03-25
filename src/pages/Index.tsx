@@ -33,21 +33,7 @@ const games = [
     animation: <CodeFlowAnim />,
   },
   {
-    icon: "💻",
-    title: "Programming Quiz Portal",
-    description: "Test your programming fundamentals.",
-    to: "/quiz",
-    animation: <CodeTypingAnim />,
-  },
-  {
-    icon: "⚖️",
-    title: "Let's Settle This",
-    description: "Choose your side. The class decides.",
-    to: "/settle",
-    animation: <ScaleAnim />,
-  },
-  {
-    icon: "💰",
+    icon: "�",
     title: "Auction Challenge",
     description: "How much is it really worth?",
     to: "/auction",
@@ -129,6 +115,20 @@ const games = [
     description: "Get a random topic. Speak for 60 seconds. Improve daily.",
     to: "/impromptu",
     animation: <SpeakingAnim />,
+  },
+  {
+    icon: "💻",
+    title: "Programming Quiz Portal",
+    description: "Test your programming fundamentals.",
+    to: "/quiz",
+    animation: <CodeTypingAnim />,
+  },
+  {
+    icon: "⚖️",
+    title: "Let's Settle This",
+    description: "Choose your side. The class decides.",
+    to: "/settle",
+    animation: <ScaleAnim />,
   },
   {
     icon: "⚡",
