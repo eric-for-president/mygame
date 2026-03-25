@@ -196,6 +196,27 @@ const DrawCircle = () => {
     return { cx, cy, r };
   }, []);
 
+  const segmentsIntersect = useCallback((a: Point, b: Point, c: Point, d: Point) => {
+    const orient = (p: Point, q: Point, r: Point) =>
+      (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+
+    const onSegment = (p: Point, q: Point, r: Point) =>
+      Math.min(p.x, r.x) <= q.x && q.x <= Math.max(p.x, r.x) &&
+      Math.min(p.y, r.y) <= q.y && q.y <= Math.max(p.y, r.y);
+
+    const o1 = orient(a, b, c);
+    const o2 = orient(a, b, d);
+    const o3 = orient(c, d, a);
+    const o4 = orient(c, d, b);
+
+    if ((o1 > 0) !== (o2 > 0) && (o3 > 0) !== (o4 > 0)) return true;
+    if (o1 === 0 && onSegment(a, c, b)) return true;
+    if (o2 === 0 && onSegment(a, d, b)) return true;
+    if (o3 === 0 && onSegment(c, a, d)) return true;
+    if (o4 === 0 && onSegment(c, b, d)) return true;
+    return false;
+  }, []);
+
   const calculateScore = useCallback((points: Point[]) => {
     if (points.length < 10) return 0;
 
@@ -213,6 +234,58 @@ const DrawCircle = () => {
     const normalizedError = Math.min(1, (0.65 * avgError + 0.35 * rmsError) / meanRadius);
     const rawScore = Math.max(0, 100 * (1 - 1.35 * normalizedError));
 
+    // Detect radial outliers so inward spikes / dents are penalized more strongly.
+    const absErrors = distances
+      .map((d) => Math.abs(d - meanRadius))
+      .sort((a, b) => a - b);
+    const p90Error = absErrors[Math.floor((absErrors.length - 1) * 0.9)] ?? 0;
+    const p90Ratio = p90Error / meanRadius;
+    const outlierPenalty = Math.max(0, (p90Ratio - 0.16) * 70);
+
+    // Count self-intersections (sampled for performance). A true circle should have none.
+    const sampleStep = Math.max(1, Math.floor(points.length / 180));
+    const sampled = points.filter((_, i) => i % sampleStep === 0);
+    if (sampled[sampled.length - 1] !== points[points.length - 1]) {
+      sampled.push(points[points.length - 1]);
+    }
+
+    let intersections = 0;
+    for (let i = 0; i < sampled.length - 1; i++) {
+      const a = sampled[i];
+      const b = sampled[i + 1];
+      for (let j = i + 2; j < sampled.length - 1; j++) {
+        // Skip neighboring segments and the first-last wrap adjacency.
+        if (i === 0 && j === sampled.length - 2) continue;
+        const c = sampled[j];
+        const d = sampled[j + 1];
+        if (segmentsIntersect(a, b, c, d)) {
+          intersections += 1;
+          if (intersections >= 6) break;
+        }
+      }
+      if (intersections >= 6) break;
+    }
+    const intersectionPenalty = intersections * 9;
+
+    // Track angular sweep quality around fitted center.
+    let totalSigned = 0;
+    let totalAbs = 0;
+    let prev = Math.atan2(points[0].y - cy, points[0].x - cx);
+    for (let i = 1; i < points.length; i++) {
+      const current = Math.atan2(points[i].y - cy, points[i].x - cx);
+      let delta = current - prev;
+      while (delta > Math.PI) delta -= 2 * Math.PI;
+      while (delta < -Math.PI) delta += 2 * Math.PI;
+      totalSigned += delta;
+      totalAbs += Math.abs(delta);
+      prev = current;
+    }
+
+    const revolutions = Math.abs(totalSigned) / (2 * Math.PI);
+    const turnRatio = totalAbs / (Math.abs(totalSigned) + 1e-6);
+    const revolutionPenalty = Math.min(24, Math.abs(revolutions - 1) * 28);
+    const backtrackPenalty = Math.max(0, (turnRatio - 1.2) * 16);
+
     // Bonus: check if shape is closed
     const first = points[0];
     const last = points[points.length - 1];
@@ -220,9 +293,10 @@ const DrawCircle = () => {
     const closureRatio = closeDist / meanRadius;
     const closureBonus = closureRatio < 0.25 ? 3 : -Math.min(3, closureRatio * 2.2);
 
-    const finalScore = Math.max(0, Math.min(100, rawScore + closureBonus));
+    const shapePenalty = intersectionPenalty + revolutionPenalty + backtrackPenalty + outlierPenalty;
+    const finalScore = Math.max(0, Math.min(100, rawScore + closureBonus - shapePenalty));
     return Math.round(finalScore * 10) / 10;
-  }, [fitCircle]);
+  }, [fitCircle, segmentsIntersect]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (phase !== "idle") return;
