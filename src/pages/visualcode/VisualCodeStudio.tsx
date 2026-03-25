@@ -46,6 +46,12 @@ console.log(total);`,
     Console.WriteLine(total);
   }
 }`,
+  php: `<?php
+$total = 0;
+for ($i = 1; $i <= 5; $i++) {
+  $total = $total + $i;
+}
+echo($total);`,
 };
 
 const matrixDemoCode: Record<Language, string> = {
@@ -111,6 +117,15 @@ console.log(matrix);`,
     Console.WriteLine(matrix);
   }
 }`,
+  php: `<?php
+$matrix = [
+  [1, 2, 3],
+  [4, 5, 6],
+  [7, 8, 9]
+];
+
+$matrix[1][1] = 42;
+echo($matrix);`,
 };
 
 const formatValue = (value: unknown): string => {
@@ -421,6 +436,7 @@ const VisualCodeStudio = () => {
                 <option value="javascript">JavaScript</option>
                 <option value="java">Java</option>
                 <option value="dotnet">.NET (C#)</option>
+                <option value="php">PHP</option>
               </select>
 
               <Button size="sm" onClick={runCode} className="gap-2">

@@ -42,6 +42,12 @@ console.log(total)`,
         Console.WriteLine(a + b);
     }
 }`,
+  php: `<?php
+$total = 0;
+for ($i = 1; $i <= 3; $i++) {
+    $total = $total + $i;
+}
+echo($total);`,
 };
 
 const getStarterCode = (language: Language): string => {
@@ -1250,6 +1256,7 @@ const VisualCodeLab = () => {
           <option value="javascript">JavaScript</option>
           <option value="java">Java</option>
           <option value="dotnet">.NET (C#)</option>
+          <option value="php">PHP</option>
         </select>
 
         <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />

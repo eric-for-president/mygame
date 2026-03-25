@@ -2571,4 +2571,403 @@ Console.WriteLine(m2.value);`,
 Threshold t = new Threshold(42);
 Console.WriteLine(t.Check());`,
     },
+    // ═══════════════════════════════════
+    // PHP EXAMPLES
+    // ═══════════════════════════════════
+    {
+        name: 'PHP Variables',
+        language: 'php',
+        description: 'Basic variable assignments',
+        code: `<?php
+$a = 10;
+$b = 20;
+$sum = $a + $b;
+echo($sum);`,
+    },
+    {
+        name: 'PHP If Else',
+        language: 'php',
+        description: 'Conditional branch',
+        code: `<?php
+$x = 15;
+if ($x > 10) {
+    $out = 1;
+} else {
+    $out = 0;
+}
+echo($out);`,
+    },
+    {
+        name: 'PHP Nested If',
+        language: 'php',
+        description: 'Nested conditions',
+        code: `<?php
+$n = 7;
+if ($n > 0) {
+    if ($n % 2 == 0) {
+        $tag = 2;
+    } else {
+        $tag = 1;
+    }
+}
+echo($tag);`,
+    },
+    {
+        name: 'PHP For Loop',
+        language: 'php',
+        description: 'For loop total',
+        code: `<?php
+$total = 0;
+for ($i = 1; $i <= 5; $i++) {
+    $total = $total + $i;
+}
+echo($total);`,
+    },
+    {
+        name: 'PHP While Loop',
+        language: 'php',
+        description: 'While loop count',
+        code: `<?php
+$i = 1;
+$total = 0;
+while ($i <= 5) {
+    $total = $total + $i;
+    $i = $i + 1;
+}
+echo($total);`,
+    },
+    {
+        name: 'PHP Nested Loops',
+        language: 'php',
+        description: 'Nested loop accumulation',
+        code: `<?php
+$count = 0;
+for ($r = 1; $r <= 3; $r++) {
+    for ($c = 1; $c <= 3; $c++) {
+        $count = $count + 1;
+    }
+}
+echo($count);`,
+    },
+    {
+        name: 'PHP Array Index',
+        language: 'php',
+        description: 'Read array values',
+        code: `<?php
+$arr = [4, 6, 8, 10];
+$v = $arr[2];
+echo($v);`,
+    },
+    {
+        name: 'PHP Array Sum',
+        language: 'php',
+        description: 'Sum array using loop',
+        code: `<?php
+$arr = [1, 3, 5, 7];
+$s = 0;
+for ($i = 0; $i < 4; $i++) {
+    $s = $s + $arr[$i];
+}
+echo($s);`,
+    },
+    {
+        name: 'PHP Running Sum Array',
+        language: 'php',
+        description: 'Prefix sum update',
+        code: `<?php
+$arr = [1, 2, 3, 4, 5];
+for ($i = 1; $i < 5; $i++) {
+    $arr[$i] = $arr[$i] + $arr[$i - 1];
+}
+echo($arr);`,
+    },
+    {
+        name: 'PHP Matrix Update',
+        language: 'php',
+        description: '2D array cell updates',
+        code: `<?php
+$m = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+$m[1][1] = 42;
+$v = $m[1][1];
+$v = $v + 1;
+echo($v);
+echo($m);`,
+    },
+    {
+        name: 'PHP Function Add',
+        language: 'php',
+        description: 'Simple function call',
+        code: `<?php
+function add($a, $b) {
+    return $a + $b;
+}
+$ans = add(3, 9);
+echo($ans);`,
+    },
+    {
+        name: 'PHP Function Multiply',
+        language: 'php',
+        description: 'Function multiply',
+        code: `<?php
+function mul($a, $b) {
+    return $a * $b;
+}
+$p = mul(4, 6);
+echo($p);`,
+    },
+    {
+        name: 'PHP Recursive Factorial',
+        language: 'php',
+        description: 'Recursion example',
+        code: `<?php
+function fact($n) {
+    if ($n <= 1) {
+        return 1;
+    }
+    return $n * fact($n - 1);
+}
+echo(fact(5));`,
+    },
+    {
+        name: 'PHP Recursive Fibonacci',
+        language: 'php',
+        description: 'Recursive fibonacci',
+        code: `<?php
+function fib($n) {
+    if ($n <= 1) {
+        return $n;
+    }
+    return fib($n - 1) + fib($n - 2);
+}
+echo(fib(7));`,
+    },
+    {
+        name: 'PHP Linear Search',
+        language: 'php',
+        description: 'Find target index',
+        code: `<?php
+$arr = [10, 25, 30, 45, 60];
+$pos = -1;
+for ($i = 0; $i < 5; $i++) {
+    if ($arr[$i] == 30) {
+        $pos = $i;
+    }
+}
+echo($pos);`,
+    },
+    {
+        name: 'PHP Bubble Sort',
+        language: 'php',
+        description: 'Bubble sort logic',
+        code: `<?php
+$arr = [5, 3, 8, 1, 2];
+$n = 5;
+for ($i = 0; $i < $n; $i++) {
+    for ($j = 0; $j < $n - 1; $j++) {
+        if ($arr[$j] > $arr[$j + 1]) {
+            $t = $arr[$j];
+            $arr[$j] = $arr[$j + 1];
+            $arr[$j + 1] = $t;
+        }
+    }
+}
+echo($arr);`,
+    },
+    {
+        name: 'PHP Selection Sort',
+        language: 'php',
+        description: 'Selection sort logic',
+        code: `<?php
+$arr = [64, 25, 12, 22, 11];
+$n = 5;
+for ($i = 0; $i < $n; $i++) {
+    $mi = $i;
+    for ($j = $i + 1; $j < $n; $j++) {
+        if ($arr[$j] < $arr[$mi]) {
+            $mi = $j;
+        }
+    }
+    $t = $arr[$i];
+    $arr[$i] = $arr[$mi];
+    $arr[$mi] = $t;
+}
+echo($arr);`,
+    },
+    {
+        name: 'PHP GCD Euclid',
+        language: 'php',
+        description: 'Greatest common divisor',
+        code: `<?php
+function gcd($a, $b) {
+    if ($b == 0) {
+        return $a;
+    }
+    return gcd($b, $a % $b);
+}
+echo(gcd(48, 18));`,
+    },
+    {
+        name: 'PHP Power Recursion',
+        language: 'php',
+        description: 'Power function',
+        code: `<?php
+function power($b, $e) {
+    if ($e == 0) {
+        return 1;
+    }
+    return $b * power($b, $e - 1);
+}
+echo(power(2, 8));`,
+    },
+    {
+        name: 'PHP Reverse Number',
+        language: 'php',
+        description: 'Reverse digits',
+        code: `<?php
+$n = 12345;
+$rev = 0;
+while ($n > 0) {
+    $rev = $rev * 10 + ($n % 10);
+    $n = ($n - ($n % 10)) / 10;
+}
+echo($rev);`,
+    },
+    {
+        name: 'PHP Count Digits',
+        language: 'php',
+        description: 'Count digits loop',
+        code: `<?php
+$n = 54321;
+$c = 0;
+while ($n > 0) {
+    $n = ($n - ($n % 10)) / 10;
+    $c = $c + 1;
+}
+echo($c);`,
+    },
+    {
+        name: 'PHP Sum Digits',
+        language: 'php',
+        description: 'Sum all digits',
+        code: `<?php
+$n = 5678;
+$s = 0;
+while ($n > 0) {
+    $s = $s + ($n % 10);
+    $n = ($n - ($n % 10)) / 10;
+}
+echo($s);`,
+    },
+    {
+        name: 'PHP Even Odd',
+        language: 'php',
+        description: 'Parity check',
+        code: `<?php
+$n = 42;
+if ($n % 2 == 0) {
+    $v = 1;
+} else {
+    $v = 0;
+}
+echo($v);`,
+    },
+    {
+        name: 'PHP Prime Check',
+        language: 'php',
+        description: 'Simple prime test',
+        code: `<?php
+$n = 17;
+$ok = 1;
+for ($i = 2; $i < $n; $i++) {
+    if ($n % $i == 0) {
+        $ok = 0;
+    }
+}
+echo($ok);`,
+    },
+    {
+        name: 'PHP Max In Array',
+        language: 'php',
+        description: 'Track maximum value',
+        code: `<?php
+$arr = [8, 3, 11, 2, 6];
+$m = $arr[0];
+for ($i = 1; $i < 5; $i++) {
+    if ($arr[$i] > $m) {
+        $m = $arr[$i];
+    }
+}
+echo($m);`,
+    },
+    {
+        name: 'PHP Min In Array',
+        language: 'php',
+        description: 'Track minimum value',
+        code: `<?php
+$arr = [8, 3, 11, 2, 6];
+$m = $arr[0];
+for ($i = 1; $i < 5; $i++) {
+    if ($arr[$i] < $m) {
+        $m = $arr[$i];
+    }
+}
+echo($m);`,
+    },
+    {
+        name: 'PHP Absolute Difference',
+        language: 'php',
+        description: 'Absolute-like diff using branch',
+        code: `<?php
+$a = 13;
+$b = 28;
+if ($a > $b) {
+    $d = $a - $b;
+} else {
+    $d = $b - $a;
+}
+echo($d);`,
+    },
+    {
+        name: 'PHP Range Sum',
+        language: 'php',
+        description: 'Summation 1..n',
+        code: `<?php
+$n = 10;
+$total = 0;
+for ($i = 1; $i <= $n; $i++) {
+    $total = $total + $i;
+}
+echo($total);`,
+    },
+    {
+        name: 'PHP Function Composition',
+        language: 'php',
+        description: 'Call function inside function',
+        code: `<?php
+function twice($x) {
+    return $x * 2;
+}
+function plusThree($x) {
+    return $x + 3;
+}
+$v = plusThree(twice(5));
+echo($v);`,
+    },
+    {
+        name: 'PHP Countdown',
+        language: 'php',
+        description: 'Decrement while loop',
+        code: `<?php
+$n = 5;
+$last = 0;
+while ($n > 0) {
+    $last = $n;
+    $n = $n - 1;
+}
+echo($last);`,
+    },
 ];

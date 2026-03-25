@@ -9,7 +9,7 @@ export interface StudioCodeExample extends CodeExample {
   primaryCategory: string;
 }
 
-const LANGUAGES: Language[] = ["python", "c", "javascript", "java", "dotnet"];
+const LANGUAGES: Language[] = ["python", "c", "javascript", "java", "dotnet", "php"];
 
 const CATEGORY_RULES: Array<{ key: string; tokens: string[] }> = [
   { key: "basics", tokens: ["variable", "type", "basic", "print", "hello"] },
@@ -117,6 +117,7 @@ export const studioExamplesByLanguage: Record<Language, StudioCodeExample[]> =
     javascript: [],
     java: [],
     dotnet: [],
+    php: [],
   });
 
 export const studioCategoriesByLanguage: Record<Language, string[]> =
@@ -135,4 +136,5 @@ export const studioCategoriesByLanguage: Record<Language, string[]> =
     javascript: [],
     java: [],
     dotnet: [],
+    php: [],
   });

@@ -1,5 +1,5 @@
 // Types
-export type Language = 'python' | 'c' | 'javascript' | 'java' | 'dotnet';
+export type Language = 'python' | 'c' | 'javascript' | 'java' | 'dotnet' | 'php';
 
 export interface StackFrame {
   functionName: string;
@@ -1216,6 +1216,11 @@ class JavaScriptInterpreter {
         if (!line.includes('{')) j++;
         let d = 1;
         while (j < lines.length && d > 0) {
+          const blockLine = lines[j].trim();
+          // Preserve `} else {` for the dedicated else-handling branch below.
+          if (d === 1 && /^\}\s*else\b/.test(blockLine)) {
+            break;
+          }
           if (lines[j].includes('}')) d--;
           if (d <= 0) { j++; break; }
           if (lines[j].includes('{')) d++;
@@ -1638,6 +1643,58 @@ class JavaScriptInterpreter {
   }
 }
 
+function normalizePhpCode(code: string): string {
+  const lines = code.split('\n');
+  const out: string[] = [];
+  let inClass = false;
+  let classDepth = 0;
+
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (line === '' || line === '<?php' || line === '?>') {
+      out.push('');
+      continue;
+    }
+
+    if (line.startsWith('//') || line.startsWith('#')) {
+      out.push(line);
+      continue;
+    }
+
+    const startsClass = /^class\s+\w+/.test(line);
+
+    line = line
+      .replace(/\belseif\b/g, 'else if')
+      .replace(/\$([a-zA-Z_][\w]*)/g, '$1')
+      .replace(/\$this->/g, 'this.')
+      .replace(/->/g, '.')
+      .replace(/\b__construct\s*\(/g, 'constructor(')
+      .replace(/\becho\s*\((.*)\)\s*;/, 'console.log($1);')
+      .replace(/\becho\s+([^;]+);/, 'console.log($1);');
+
+    if (inClass) {
+      line = line.replace(/^function\s+([a-zA-Z_][\w]*)\s*\(/, '$1(');
+    }
+
+    const opens = (line.match(/\{/g) ?? []).length;
+    const closes = (line.match(/\}/g) ?? []).length;
+    if (startsClass) {
+      inClass = true;
+      classDepth += opens - closes;
+    } else if (inClass) {
+      classDepth += opens - closes;
+      if (classDepth <= 0) {
+        inClass = false;
+        classDepth = 0;
+      }
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n');
+}
+
 function normalizeJavaLikeCode(code: string, lang: 'java' | 'dotnet'): string {
   const lines = code.split('\n');
   const classStack: string[] = [];
@@ -1795,11 +1852,19 @@ class DotNetInterpreter {
   }
 }
 
+class PhpInterpreter {
+  run(code: string): ExecutionStep[] {
+    const normalized = normalizePhpCode(code);
+    return new JavaScriptInterpreter().run(normalized);
+  }
+}
+
 // ─── Public API ───
 export function traceCode(code: string, language: Language): ExecutionStep[] {
   if (language === 'python') return new PythonInterpreter().run(code);
   if (language === 'javascript') return new JavaScriptInterpreter().run(code);
   if (language === 'java') return new JavaInterpreter().run(code);
   if (language === 'dotnet') return new DotNetInterpreter().run(code);
+  if (language === 'php') return new PhpInterpreter().run(code);
   return new CInterpreter().run(code);
 }

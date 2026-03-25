@@ -7,7 +7,7 @@ import {
   studioExamplesByLanguage,
 } from "../pages/visualcode/studioExamples";
 
-const languages: Language[] = ["python", "c", "javascript", "java", "dotnet"];
+const languages: Language[] = ["python", "c", "javascript", "java", "dotnet", "php"];
 
 const hasVariableHistory = (codeSteps: ReturnType<typeof traceCode>): boolean => {
   const previousByName: Record<string, string> = {};

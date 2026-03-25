@@ -3,12 +3,14 @@ import { examples } from '../pages/visualcode/examples';
 import { traceCode } from '../pages/visualcode/interpreter';
 
 describe('VisualCode examples execution', () => {
-  it('includes at least 30 Java and 30 .NET examples', () => {
+  it('includes at least 30 Java, 30 .NET, and 30 PHP examples', () => {
     const javaCount = examples.filter(e => e.language === 'java').length;
     const dotnetCount = examples.filter(e => e.language === 'dotnet').length;
+    const phpCount = examples.filter(e => e.language === 'php').length;
 
     expect(javaCount).toBeGreaterThanOrEqual(30);
     expect(dotnetCount).toBeGreaterThanOrEqual(30);
+    expect(phpCount).toBeGreaterThanOrEqual(30);
   });
 
   it('runs all examples without interpreter error steps', () => {
@@ -154,5 +156,73 @@ describe('VisualCode examples execution', () => {
     const steps = traceCode(dotnetCode, 'dotnet');
     const out = steps[steps.length - 1]?.output?.at(-1);
     expect(out).toBe('20');
+  });
+
+  it('does not execute else branch when PHP if condition is true', () => {
+    const phpCode = `<?php
+$n = 8;
+if ($n > 0) {
+    if ($n % 2 == 0) {
+        $tag = 2;
+    } else {
+        $tag = 1;
+    }
+}
+echo($tag);`;
+
+    const steps = traceCode(phpCode, 'php');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('2');
+  });
+
+  it('does not execute else branch when JavaScript if condition is true', () => {
+    const jsCode = `let n = 8
+let tag = 0
+if (n > 0) {
+  if (n % 2 === 0) {
+    tag = 2
+  } else {
+    tag = 1
+  }
+}
+console.log(tag)`;
+
+    const steps = traceCode(jsCode, 'javascript');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('2');
+  });
+
+  it('executes else branch when nested PHP if condition is false', () => {
+    const phpCode = `<?php
+$n = 7;
+if ($n > 0) {
+    if ($n % 2 == 0) {
+        $tag = 2;
+    } else {
+        $tag = 1;
+    }
+}
+echo($tag);`;
+
+    const steps = traceCode(phpCode, 'php');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('1');
+  });
+
+  it('executes else branch when nested JavaScript if condition is false', () => {
+    const jsCode = `let n = 7
+let tag = 0
+if (n > 0) {
+  if (n % 2 === 0) {
+    tag = 2
+  } else {
+    tag = 1
+  }
+}
+console.log(tag)`;
+
+    const steps = traceCode(jsCode, 'javascript');
+    const out = steps[steps.length - 1]?.output?.at(-1);
+    expect(out).toBe('1');
   });
 });
