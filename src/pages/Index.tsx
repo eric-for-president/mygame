@@ -22,6 +22,13 @@ const HOME_SCROLL_KEY = "homepage-scroll-position";
 
 const games = [
   {
+    icon: "🎲",
+    title: "Student Mission",
+    description: "Open the Management or Science roster, shuffle a student, and reveal their classroom task.",
+    to: "/management-mission-shuffle",
+    animation: <SpinWheelAnim />,
+  },
+  {
     icon: "🪢",
     title: "Maths Tug Of War",
     description: "Solve math problems and pull the rope to victory.",

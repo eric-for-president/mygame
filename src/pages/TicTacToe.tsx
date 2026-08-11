@@ -205,6 +205,12 @@ const TicTacToe = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Refs to avoid stale closures in socket callbacks
+  const scoreRef = useRef(score);
+  scoreRef.current = score;
+  const playerSymbolRef = useRef(playerSymbol);
+  playerSymbolRef.current = playerSymbol;
+
   const gameOver = winner !== null || draw;
 
   // Initialize Socket.IO
@@ -236,7 +242,9 @@ const TicTacToe = () => {
       setPlayerSymbol(data.playerSymbol);
       setOpponentName(data.opponentName);
       setGameStarted(data.gameStarted);
-      setPhase("playing");
+      if (data.gameStarted) {
+        setPhase("playing");
+      }
     });
 
     socket.on("move_made", (data: { board: CellValue[]; isXTurn: boolean }) => {
@@ -253,8 +261,9 @@ const TicTacToe = () => {
         playSound("win");
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 4000);
-        const ns = { ...score };
-        if (result.winner === playerSymbol) ns.xWins++;
+        const currentScore = scoreRef.current;
+        const ns = { ...currentScore };
+        if (result.winner === playerSymbolRef.current) ns.xWins++;
         else ns.oWins++;
         setScore(ns);
         saveScore(ns);
@@ -262,7 +271,8 @@ const TicTacToe = () => {
         setDraw(true);
         setPhase("ended");
         playSound("draw");
-        const ns = { ...score, draws: score.draws + 1 };
+        const currentScore = scoreRef.current;
+        const ns = { ...currentScore, draws: currentScore.draws + 1 };
         setScore(ns);
         saveScore(ns);
       }
@@ -282,7 +292,7 @@ const TicTacToe = () => {
     return () => {
       socket.disconnect();
     };
-  }, [score, playerSymbol]);
+  }, []);
 
   const resetGame = useCallback(() => {
     setBoard(Array(9).fill(null));

@@ -371,6 +371,51 @@ function startWordAutoCall(io, room) {
   room.drawTimer = setInterval(() => callNextWord(io, room), WORD_AUTO_CALL_MS);
 }
 
+// ==================== TIC-TAC-TOE ====================
+
+/** @typedef {{ id: string, board: (string | null)[], isXTurn: boolean, players: Map<string, { socketId: string, name: string, symbol: "X" | "O" }>, status: "waiting" | "playing" | "finished" }} TicTacToeRoom */
+
+/** @type {Map<string, TicTacToeRoom>} */
+const tttRooms = new Map();
+
+const TTT_WIN_COMBOS = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
+];
+
+function checkTTTWinner(board) {
+  for (const combo of TTT_WIN_COMBOS) {
+    const [a, b, c] = combo;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return { winner: board[a], line: combo };
+    }
+  }
+  return { winner: null, line: null };
+}
+
+function isTTTDraw(board) {
+  return board.every((cell) => cell !== null);
+}
+
+function createTTTRoom(roomId) {
+  return {
+    id: roomId,
+    board: Array(9).fill(null),
+    isXTurn: true,
+    players: new Map(),
+    status: "waiting",
+  };
+}
+
+function getOrCreateTTTRoom(roomId) {
+  const existing = tttRooms.get(roomId);
+  if (existing) return existing;
+  const room = createTTTRoom(roomId);
+  tttRooms.set(roomId, room);
+  return room;
+}
+
 function sendFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const mimeType = MIME_TYPES[ext] || "application/octet-stream";
@@ -859,6 +904,121 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ===== TIC-TAC-TOE HANDLERS =====
+
+  socket.on("join_tictactoe_game", (payload = {}) => {
+    const baseRoomId = sanitizeRoomId(payload.roomId);
+    const roomId = `TTT_${baseRoomId}`;
+    const name = String(payload.playerName || "Player").trim().slice(0, 24) || "Player";
+
+    const room = getOrCreateTTTRoom(roomId);
+
+    // If player is already in this room (reconnect), update their socket
+    if (room.players.has(socket.id)) {
+      const existing = room.players.get(socket.id);
+      existing.name = name;
+    } else {
+      // Room full (already has 2 players)
+      if (room.players.size >= 2) {
+        socket.emit("room_full");
+        return;
+      }
+
+      // If room is finished from a previous game, reset it for new players
+      if (room.status === "finished") {
+        room.board = Array(9).fill(null);
+        room.isXTurn = true;
+        room.status = "waiting";
+        room.players.clear();
+      }
+
+      // Assign symbol: first player = X, second = O
+      const symbol = room.players.size === 0 ? "X" : "O";
+      room.players.set(socket.id, {
+        socketId: socket.id,
+        name,
+        symbol,
+      });
+    }
+
+    socket.join(roomId);
+
+    // If we now have 2 players, start the game
+    if (room.players.size === 2) {
+      room.status = "playing";
+
+      // Send personalized game_state to each player
+      for (const player of room.players.values()) {
+        const opponent = [...room.players.values()].find(
+          (p) => p.socketId !== player.socketId
+        );
+
+        io.to(player.socketId).emit("game_state", {
+          board: room.board,
+          isXTurn: room.isXTurn,
+          playerSymbol: player.symbol,
+          opponentName: opponent ? opponent.name : "Opponent",
+          gameStarted: true,
+        });
+      }
+    } else {
+      // Only 1 player, send them a waiting state
+      socket.emit("game_state", {
+        board: room.board,
+        isXTurn: room.isXTurn,
+        playerSymbol: "X",
+        opponentName: "",
+        gameStarted: false,
+      });
+    }
+  });
+
+  socket.on("make_move", (payload = {}) => {
+    const baseRoomId = sanitizeRoomId(payload.roomId);
+    const roomId = `TTT_${baseRoomId}`;
+    const room = tttRooms.get(roomId);
+    if (!room || room.status !== "playing") return;
+
+    const player = room.players.get(socket.id);
+    if (!player) return;
+
+    const index = Number(payload.index);
+    if (!Number.isInteger(index) || index < 0 || index >= 9) return;
+
+    // Validate it's this player's turn
+    const expectedSymbol = room.isXTurn ? "X" : "O";
+    if (player.symbol !== expectedSymbol) return;
+
+    // Cell must be empty
+    if (room.board[index] !== null) return;
+
+    // Make the move
+    room.board[index] = player.symbol;
+    room.isXTurn = !room.isXTurn;
+
+    // Broadcast the move to both players
+    io.to(roomId).emit("move_made", {
+      board: room.board,
+      isXTurn: room.isXTurn,
+    });
+
+    // Check for winner or draw
+    const result = checkTTTWinner(room.board);
+    if (result.winner) {
+      room.status = "finished";
+      io.to(roomId).emit("game_result", {
+        winner: result.winner,
+        line: result.line,
+      });
+    } else if (isTTTDraw(room.board)) {
+      room.status = "finished";
+      io.to(roomId).emit("game_result", {
+        winner: null,
+        line: null,
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     for (const [roomId, room] of rooms.entries()) {
       if (!room.players.has(socket.id)) {
@@ -897,10 +1057,44 @@ io.on("connection", (socket) => {
         emitWordRoomState(io, room);
       }
     }
+
+    // TicTacToe cleanup
+    for (const [roomId, room] of tttRooms.entries()) {
+      if (!room.players.has(socket.id)) {
+        continue;
+      }
+
+      room.players.delete(socket.id);
+
+      if (room.players.size === 0) {
+        tttRooms.delete(roomId);
+      } else {
+        // Notify the remaining player that their opponent left
+        room.status = "finished";
+        for (const remainingPlayer of room.players.values()) {
+          io.to(remainingPlayer.socketId).emit("game_state", {
+            board: room.board,
+            isXTurn: room.isXTurn,
+            playerSymbol: remainingPlayer.symbol,
+            opponentName: "",
+            gameStarted: false,
+          });
+        }
+        // Reset the room so a new player can join
+        room.board = Array(9).fill(null);
+        room.isXTurn = true;
+        room.status = "waiting";
+        // Re-assign the remaining player to X
+        const remaining = room.players.values().next().value;
+        if (remaining) {
+          remaining.symbol = "X";
+        }
+      }
+    }
   });
 });
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, "0.0.0.0", () => {
   // eslint-disable-next-line no-console
   console.log(`Bingo server listening on port ${PORT}`);
 });

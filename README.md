@@ -62,12 +62,48 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Deploying to Fly.io
 
-## Can I connect a custom domain to my Lovable project?
+This project includes `fly.toml` and `Dockerfile` for easy deployment to [Fly.io](https://fly.io).
 
-Yes, you can!
+1. **Install Fly CLI (`flyctl`)** (if not already installed):
+   - **Windows (PowerShell)**:
+     ```powershell
+     iwr https://fly.io/install.ps1 -useb | iex
+     ```
+   - **macOS / Linux**:
+     ```bash
+     curl -L https://fly.io/install.sh | sh
+     ```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. **Authenticate with Fly.io**:
+   ```bash
+   fly auth login
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+3. **Launch the application**:
+   If deploying for the first time:
+   ```bash
+   fly launch
+   ```
+   Follow the prompts. Choose your desired app name and region. When asked if you'd like to deploy now, select **Yes**.
+
+4. **Deploying updates**:
+   ```bash
+   fly deploy
+   ```
+
+5. **Set Environment Variables (if needed)**:
+   ```bash
+   fly secrets set BINGO_CORS_ORIGIN="https://your-domain.com"
+   ```
+
+---
+
+## Can I connect a custom domain?
+
+Yes! If hosting on Fly.io:
+```bash
+fly certs create yourdomain.com
+```
+Follow the DNS instructions output by Fly.io.

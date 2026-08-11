@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Monitor, Trophy, ArrowLeft, ChevronLeft, ChevronRight, List } from 'lucide-react';
@@ -16,6 +16,14 @@ const DisplayView = ({ state }: DisplayViewProps) => {
   const currentQuestion = state.filteredQuestions[state.currentQuestionIndex];
   const currentRound = state.rounds[state.currentRoundIndex];
   const currentTeam = state.teams[state.currentTeamIndex];
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
   // Build per-category ordinal map: id -> 1..N within its category
   const idToOrdinal = new Map<string, number>();
   for (const cat of categories) {
@@ -124,6 +132,57 @@ const DisplayView = ({ state }: DisplayViewProps) => {
                   <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${getCategoryBadgeTone(currentQuestion.category)}`}>
                     {getCategoryLabel(currentQuestion.category)}
                   </span>
+
+                  {(currentQuestion.imageUrl || currentQuestion.audioUrl || currentQuestion.audioPrompt) && (
+                    <div className="space-y-4">
+                      {currentQuestion.imageUrl && (
+                        <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-border bg-muted/20 shadow-2xl">
+                          <div className="flex max-h-[48vh] items-center justify-center bg-background/55 p-3 sm:p-4">
+                            <img
+                              src={currentQuestion.imageUrl}
+                              alt={currentQuestion.imageAlt || currentQuestion.answer}
+                              className="max-h-[48vh] w-full object-contain"
+                              loading="eager"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {currentQuestion.audioUrl && currentQuestion.audioUrl.trim() !== '' && (
+                        <div className="mx-auto max-w-2xl rounded-3xl border border-amber-400/30 bg-amber-500/10 p-4 sm:p-5 text-left shadow-lg">
+                          <p className="text-[10px] uppercase tracking-[0.25em] text-amber-200/80 mb-3 font-bold">
+                            🔊 Real Voice / Speech Recording
+                          </p>
+                          <audio controls className="w-full" src={currentQuestion.audioUrl} preload="metadata">
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
+                      )}
+
+                      {currentQuestion.audioPrompt && (
+                        <div className="flex flex-col items-center gap-2">
+                          <Button
+                            size="lg"
+                            variant="secondary"
+                            className="gap-2 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 border border-amber-400/30"
+                            onClick={() => {
+                              if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+                              const utterance = new SpeechSynthesisUtterance(currentQuestion.audioPrompt!);
+                              utterance.rate = 0.95;
+                              utterance.pitch = 1;
+                              window.speechSynthesis.cancel();
+                              window.speechSynthesis.speak(utterance);
+                            }}
+                          >
+                            🔊 Play Audio Speech Clue
+                          </Button>
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                            Audio Visual Speech Round
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-foreground leading-tight">
                     {currentQuestion.text}

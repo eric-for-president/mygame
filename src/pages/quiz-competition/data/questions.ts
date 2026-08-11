@@ -5,6 +5,8 @@ import { extraQuestions } from './extraQuestions';
 import { networkingQuestions } from './networkingQuestions';
 import { cybercrimeCyberlawQuestions } from './cybercrimeCyberlawQuestions';
 import { millionaireQuestions } from './millionaireQuestions';
+import { audioVisualPeopleQuestions } from './audioVisualPeopleQuestions';
+import { logicGatesQuestions, LOGIC_GATES_CATEGORY } from './logicGatesQuestions';
 
 export interface Question {
   id: string;
@@ -13,10 +15,16 @@ export interface Question {
   category: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'random';
   used?: boolean;
+  imageUrl?: string;
+  imageAlt?: string;
+  audioUrl?: string;
+  audioPrompt?: string;
   // For millionaire-style multiple choice questions
   options?: string[];
   correctIndex?: number;
 }
+
+export const AUDIO_VISUAL_CATEGORY = 'Audio Visual People' as const;
 
 export const categories = [
   'गाउँ खाने कथा',
@@ -26,6 +34,7 @@ export const categories = [
   'Nepalese History',
   'Nepal General Knowledge',
   'Nepal Election 2082',
+  LOGIC_GATES_CATEGORY,
   'Programming',
   'Coding',
   'Robotics',
@@ -35,6 +44,7 @@ export const categories = [
   'Networking',
   'Cybercrime and Cyberlaw',
   'Current Affairs',
+  AUDIO_VISUAL_CATEGORY,
   'C Programming',
   'Python Programming',
   'Population & Health',
@@ -203,6 +213,7 @@ export const sampleQuestions: Question[] = [
   { id: 'nh-44', text: 'The four Malla kingdoms were Kathmandu, Patan, Bhaktapur and?', answer: 'Only three', category: 'Nepalese History', difficulty: 'medium' },
   { id: 'nh-45', text: 'Who introduced the Bikram Sambat calendar?', answer: 'King Vikramaditya', category: 'Nepalese History', difficulty: 'hard' },
   { id: 'nh-46', text: 'Dashrath Chand was a famous martyr executed in which year?', answer: '1941', category: 'Nepalese History', difficulty: 'hard' },
+  { id: 'nh-47', text: 'Who famously challenged King Birendra in 2047 BS at Khula Manch with the words "श्रीपेच फुकालेर चुनाव लड्न आऊ"?', answer: 'Madan Bhandari', category: 'Nepalese History', difficulty: 'medium' },
 
   // ═══════════════════════════════════
   // NEPAL GENERAL KNOWLEDGE (26+20 questions)
@@ -661,6 +672,9 @@ export const sampleQuestions: Question[] = [
 
   // Cybercrime and Cyberlaw
   ...cybercrimeCyberlawQuestions,
+
+  ...audioVisualPeopleQuestions,
+  ...logicGatesQuestions,
 
   // ═══════════════════════════════════
   // WHO WANTS TO BE A MILLIONAIRE (45 questions)
